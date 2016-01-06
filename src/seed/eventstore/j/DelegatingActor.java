@@ -9,7 +9,7 @@ public class DelegatingActor extends UntypedActor{
 
     public DelegatingActor(MsgReceiver receiver){
         this.receiver = receiver;
-
+        this.receiver.onInit(this);
     }
 
     public void onReceive(Object message) throws Exception {

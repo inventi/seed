@@ -9,7 +9,7 @@
           [eventstore.j
            SettingsBuilder EsConnectionFactory EventDataBuilder WriteEventsBuilder ReadStreamEventsBuilder
            SubscribeToBuilder]
-          [seed.eventstore.j DelegatingActor MsgReceiver DeathWatcher]
+          [seed.eventstore.j DelegatingActor MsgReceiver]
           [java.net InetSocketAddress]))
 
 (defrecord Position [commit prepare])
@@ -27,10 +27,11 @@
 (defn- start-watcher! [con system]
   (let [c (chan)
         watcher (.actorOf system
-                          (DeathWatcher/props
-                            con
+                          (DelegatingActor/props
                             (reify
                               MsgReceiver
+                              (onInit [this actor]
+                                (.watch (.getContext actor) con))
                               (onReceive [this message]
                                 (>!! c message)))))]
     (async/go-loop []
@@ -70,6 +71,7 @@
     actor-system
     (DelegatingActor/props (reify
                              MsgReceiver
+                             (onInit [this actor])
                              (onReceive [this message]
                                (async/go
                                  (async/>! chan message)
