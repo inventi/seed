@@ -1,6 +1,7 @@
 (ns seed.account
   (require [automat.core :as a]
-           [seed.command :as command :refer [success error]]))
+           [seed.command :as command :refer [cmd-error]]
+           [seed.util :refer [success]]))
 
 (defrecord OpenAccount [number currency applicant holder])
 (defrecord DebitAccount  [account-number amount currency])
@@ -21,36 +22,36 @@
   DebitAccount
   (perform [command state]
     (if-not (account-exist? state)
-      (error :account-doesnt-exist)
+      (cmd-error :account-doesnt-exist)
       (success [(map->AccountDebited command)])))
 
   CreditAccount
   (perform [command state]
     (if-not (account-exist? state)
-      (error :account-doesnt-exist)
+      (cmd-error :account-doesnt-exist)
       (if (<= (:balance state) 0)
-        (error :insuficient-balance)
+        (cmd-error :insuficient-balance)
         (success [(map->AccountCredited command)])))))
 
 (defprotocol Account
-  (update-state [event state]))
+  (state[event state]))
 
 (extend-protocol Account
 
   AccountOpened
-  (update-state [event state]
+  (state [event state]
     (assoc state
            :state :created
            :number (:account-number event)
            :balance 0))
 
   AccountDebited
-  (update-state [event state]
+  (state [event state]
     (assoc state
            :balance (+ (:balance state) (:amount event))))
 
   AccountCredited
-  (update-state [event state]
+  (state [event state]
     (assoc state
            :balance (- (:balance state) (:amount event)))))
 

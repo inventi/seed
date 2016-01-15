@@ -51,3 +51,9 @@
       (when-let [event-class ^Class (resolve (symbol event-type))]
         (eval `(new ~(symbol event-type)
                     ~@(ctor-args event-class)))))))
+
+(defn error [e]
+  [nil e])
+
+(defn success [r]
+  [r nil])

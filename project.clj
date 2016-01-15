@@ -7,7 +7,6 @@
                  [automat  "0.1.3"]
                  [org.clojure/core.async  "0.2.374"]
                  [com.geteventstore/eventstore-client_2.11 "2.1.1"]
-                 [org.clojars.scsibug/feedparser-clj "0.5.0"]
                  [org.clojure/data.json  "0.2.6"]
                  [org.clojure/tools.logging "0.3.1"]
                  [com.stuartsierra/component  "0.3.1"]

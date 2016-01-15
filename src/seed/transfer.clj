@@ -2,7 +2,8 @@
   (require [automat.core :as a]
            [seed.process :as process]
            [seed.command :as command]
-           [seed.account :as account]))
+           [seed.account :as account]
+           [seed.util :refer [success]]))
 
 (defrecord InitiateTransfer [id from to amount])
 (defrecord CompleteTransfer [])
@@ -63,36 +64,36 @@
       :fail-transfer fail-transfer}}))
 
 (defprotocol TransferProcess
-  (update-state [event state]))
+  (state [event state]))
 
 (extend-protocol TransferProcess
   TransferInitiated
-  (update-state [event state]
+  (state [event state]
     (assoc state
          :state :initiated))
 
   TransferCompleted
-  (update-state [event state]
+  (state [event state]
     (assoc state
            :state :completed))
 
   TransferFailed
-  (update-state [event state]
+  (state [event state]
     (assoc state
            :state :failed)))
 
 (extend-protocol command/CommandHandler
   InitiateTransfer
   (perform [command state]
-   [[(apply ->TransferInitiated (vals command))] nil])
+   (success [(apply ->TransferInitiated (vals command))]))
 
   CompleteTransfer
   (perform [command state]
-    [[(map->TransferCompleted command)] nil])
+    (success [(map->TransferCompleted command)]))
 
   FailTransfer
   (perform [command state]
-    [[(map->TransferFailed command)] nil]))
+    (success [(map->TransferFailed command)])))
 
 (defn transfer-money [from to amount {:keys [event-store]}]
   (let [id (str (java.util.UUID/randomUUID))]

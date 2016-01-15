@@ -1,7 +1,7 @@
 (ns seed.command
   (require [seed.event-store :as es]
            [clojure.core.async :as async :refer [go-loop chan close! >! <! go]]
-           [seed.util :refer [camel->lisp get-namespace new-empty-event]]
+           [seed.util :refer [camel->lisp get-namespace new-empty-event success error]]
            [clojure.tools.logging :as log]))
 
 (defrecord CommandError [error])
@@ -9,97 +9,82 @@
 (defprotocol CommandHandler
     (perform  [command state]))
 
-(defn error [e]
-  [nil (->CommandError e)])
+(defn cmd-error [e]
+  (error (->CommandError e)))
 
-(defn success [r]
-  [r nil])
-
-(defn resolve-event-func [t n]
-  (ns-resolve (symbol n) (symbol (camel->lisp t))))
-
-(defn data->event [{:keys [event-type data]} event-ns]
+(defn seed-event [event-ns {:keys [event-type data]}]
   (into (new-empty-event (str event-ns "." event-type)) data))
 
-(defn event->data [event]
-  (assoc {:data event}
+(defn es-event [event]
+  (assoc {:data (into {} event)}
          :event-type (.getSimpleName (type event))))
 
-(defn apply-events [state events event-ns]
-  (assoc
-    (reduce
-      (fn [state event]
-        (let [apply-event (ns-resolve event-ns (symbol "update-state"))]
-          (apply-event (data->event event event-ns) state)))
-      state
-      (reverse events))
-    :version (:event-number (first events))))
-
-(defn cmd [state command]
-  (perform command state))
-
-(defn next-event-num [state]
-  (if-let [version (:version state)] (inc version) 0))
-
-(defn load-stream-state! [initial-state id stream-ns event-store]
-  (go-loop [state initial-state]
-           (let [[events err] (<!(es/load-events (str stream-ns "-" id) (next-event-num state) event-store))]
-             (if err
-               (into (error {}) err)
-               (if (empty? events)
-                 (success state)
-                 (recur (apply-events state events stream-ns)))))))
-
-(defn with-retry-num [state]
-  (if-let [retry (:retry state)]
-    (assoc state :retry (inc retry))
-    (assoc state :retry 0)))
-
-(defn map-events->data [events metadata]
-  (map #(assoc (event->data %)
+(defn es-events [events metadata]
+  (map #(assoc (es-event %)
                :metadata metadata) events))
 
-(defn save-evts [events metadata stream version event-store]
-  (es/save-events
-    (map-events->data events metadata)
-    stream
-    version event-store))
+(defn state-fn [event-ns]
+  (ns-resolve event-ns (symbol "state")))
 
-(defn if-ok [[v e :as result] f]
-  (if (nil? e)
-        (f v)
-        result))
+(defn next-state [event-ns state event]
+  (if-let [apply-event (state-fn event-ns)]
+    (apply-event event state)
+    (throw (IllegalStateException. (str "event " (.getName (type event)) " doesn't exist")))))
 
-(defn should-retry? [[_ e] state]
-  (and
-    (= (:error e) :wrong-expected-version)
-    (> 10 (:retry state))))
+(defn current-state [event-ns state events]
+  (reduce (partial next-state event-ns) state (reverse events)))
 
-(defn perform-command! [initial-state id command metadata event-store]
+(defn from-event [version]
+  (if (nil? version) 0 (inc version)))
+
+(defn load-stream-state! [init-state id stream-ns event-store]
+  (go-loop [state init-state
+            version (:version init-state)]
+           (let [stream (str stream-ns "-" id)
+                 [events err :as result] (<!(es/load-events stream (from-event version) event-store))]
+             (if err
+               result
+               (if (empty? events)
+                 (success (assoc state :version version))
+                 (recur
+                   (->> events
+                        (map (partial seed-event stream-ns))
+                        (current-state stream-ns state))
+                   (:event-number (first events))))))))
+
+(defn run-cmd [state id command metadata event-store]
   (go
-    (let [[state _ :as result] (<!(load-stream-state! initial-state id (get-namespace command) event-store))
-          result (-> result
-                     (if-ok #(perform command %))
-                     (if-ok #(es/save-events
-                               (map-events->data % metadata)
-                               (str (get-namespace command) "-" id)
-                               (:version state) event-store)))]
-      (if (coll? result)
-        result
-        (let [result (<! result)]
-          (if (should-retry? result state)
-            (do
-              (log/debug "retrying due to wrong version. Retries" (:retry state))
-              (<! (perform-command! (with-retry-num state) id command metadata event-store)))
-            result))))))
+    (let [[state e :as result]  (<!(load-stream-state! state id (get-namespace command) event-store))
+          [events e :as result] (if (nil? e) (perform command state) result)
+          [_ e :as result]      (if (nil? e)
+                                  (<!(es/save-events
+                                       (es-events events metadata)
+                                       (str (get-namespace command) "-" id)
+                                       (:version state) event-store))
+                                  result)]
+      {:loaded-state state
+       :events events
+       :error e})))
+
+(defn run-cmd-with-retry [init-state id command metadata event-store]
+  (go-loop [state init-state
+            retries 0]
+           (let [{:keys [loaded-state events error] :as result}
+                 (<!(run-cmd state id command metadata event-store))]
+             (if (and (= (:error error) :wrong-expected-version)
+                      (> 100 retries))
+               (do
+                 (log/info "retrying due to wrong version. Retries" retries)
+                 (recur loaded-state (inc retries)))
+               result))))
 
 (defn handle-cmd
   ([id command event-store]
-   (handle-cmd {:retry 0} id command event-store))
+   (handle-cmd {} id command event-store))
 
-  ([initial-state id command event-store]
-   (handle-cmd initial-state id command {} event-store))
+  ([init-state id command event-store]
+   (handle-cmd init-state id command {} event-store))
 
-  ([initial-state id command metadata event-store]
-   (perform-command! initial-state id command metadata event-store)))
+  ([init-state id command metadata event-store]
+   (run-cmd-with-retry init-state id command metadata event-store)))
 

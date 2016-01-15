@@ -1,6 +1,6 @@
 (ns seed.event-store
   (require [com.stuartsierra.component :as component]
-           [clojure.core.async :as async :refer [chan close! >!! <! go]]
+           [clojure.core.async :as async :refer [chan close! >!! >! <! go go-loop]]
            [clojure.data.json :as json]
            [seed.util :refer [keywordize-name keywordize-exception]])
   (import [akka.actor ActorSystem]
@@ -125,7 +125,7 @@
 (defn read-stream-msg [stream from-num]
   (.build (doto (ReadStreamEventsBuilder. stream)
             (.forward)
-            (.fromNumber (eventstore.EventNumber$Exact. from-num))
+            (.fromNumber (eventstore.EventNumber$Exact. (if (nil? from-num) 0 from-num)))
             (.resolveLinkTos false)
             (.requireMaster false))))
 
