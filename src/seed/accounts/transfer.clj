@@ -95,6 +95,3 @@
   (perform [command state]
     (success [(map->TransferFailed command)])))
 
-(defn transfer-money [from to amount {:keys [event-store]}]
-  (let [id (str (java.util.UUID/randomUUID))]
-    (command/handle-cmd id (->InitiateTransfer id from to amount) event-store)))

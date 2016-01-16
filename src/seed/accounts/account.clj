@@ -55,14 +55,4 @@
     (assoc state
            :balance (- (:balance state) (:amount event)))))
 
-(defn debitaccount! [account amount {event-store :event-store}]
-  (command/handle-cmd account (->DebitAccount account amount "EUR") event-store))
-
-(defn creditaccount! [account amount {event-store :event-store}]
-  (command/handle-cmd account (->CreditAccount account amount "EUR") event-store))
-
-(defn openaccount! [party {event-store :event-store}]
-  (let [number (str (java.util.UUID/randomUUID))]
-    {:chan (command/handle-cmd number (->OpenAccount number "EUR" party party) event-store)
-     :number number}))
 

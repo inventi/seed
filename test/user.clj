@@ -27,8 +27,8 @@
   (refresh :after 'user/go))
 
 (defn acc [system]
-  (let [acc (account/openaccount! "g1" system)]
+  (let [acc (app/openaccount! "g1" system)]
     (def x1 (str (:number acc)))
     (<!! (:chan acc))
-    (account/debitaccount! x1 800 system))
-  (def x2  (str  (:number (account/openaccount! "g2" system)))))
+    (app/debitaccount! x1 800 system))
+  (def x2  (str  (:number (app/openaccount! "g2" system)))))
