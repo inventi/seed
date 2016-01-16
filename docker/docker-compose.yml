@@ -1,0 +1,13 @@
+processrepo:
+  image: zhilvis/process-repo
+  ports:
+    - "5432:5432"
+  environment:
+    - POSTGRES_USER=seed
+    - POSTGRES_PASSWORD=seed
+
+eventstore:
+  image: zhilvis/event-store
+  ports:
+    - "2113:2113"
+    - "1113:1113"
