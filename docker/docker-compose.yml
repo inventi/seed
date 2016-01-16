@@ -1,5 +1,5 @@
 processrepo:
-  image: zhilvis/process-repo
+  build: ./process-repo
   ports:
     - "5432:5432"
   environment:
@@ -7,7 +7,7 @@ processrepo:
     - POSTGRES_PASSWORD=seed
 
 eventstore:
-  image: zhilvis/event-store
+  build: ./event-store
   ports:
     - "2113:2113"
     - "1113:1113"
