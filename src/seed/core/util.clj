@@ -1,4 +1,4 @@
-(ns seed.util
+(ns seed.core.util
   (require [clojure.string :refer [lower-case]]))
 
 (defn- uppercase? [c]

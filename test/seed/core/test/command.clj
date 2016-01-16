@@ -1,7 +1,7 @@
-(ns seed.test.command
+(ns seed.core.test.command
   (require [clojure.core.async :refer [go <!!]]
-           [seed.util :refer [success error]])
-  (use [seed.command]
+           [seed.core.util :refer [success error]])
+  (use [seed.core.command]
        [clojure.test]))
 
 (defrecord DoSuccess [])

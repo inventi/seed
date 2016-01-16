@@ -1,4 +1,4 @@
-(ns seed.process-repo
+(ns seed.core.process-repo
   (use korma.db)
   (use korma.core)
   (require [com.stuartsierra.component :as component]))

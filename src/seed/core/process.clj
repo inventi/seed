@@ -1,9 +1,9 @@
-(ns seed.process
+(ns seed.core.process
   (require [automat.core :as a]
-           [seed.command :as command]
-           [seed.event-bus :as eb]
-           [seed.process-repo :as prepo]
-           [seed.util :refer [keywordize-name camel->lisp]]
+           [seed.core.command :as command]
+           [seed.core.event-bus :as eb]
+           [seed.core.process-repo :as prepo]
+           [seed.core.util :refer [keywordize-name camel->lisp]]
            [clojure.core.async :as async :refer [go <! >! go-loop]]
            [clojure.tools.logging :as log]))
 

@@ -1,4 +1,4 @@
-package seed.eventstore.j;
+package seed.core.eventstore.j;
 
 import akka.actor.UntypedActor;
 

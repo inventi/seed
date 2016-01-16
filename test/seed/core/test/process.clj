@@ -1,7 +1,7 @@
-(ns seed.test.process
+(ns seed.core.test.process
   (require [clojure.core.async :refer [go <!!]]
            [automat.core :as a])
-  (use [seed.process]
+  (use [seed.core.process]
        [clojure.test]))
 
 (def simple-process

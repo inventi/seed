@@ -1,7 +1,7 @@
-(ns seed.account
+(ns seed.accounts.account
   (require [automat.core :as a]
-           [seed.command :as command :refer [cmd-error]]
-           [seed.util :refer [success]]))
+           [seed.core.command :as command :refer [cmd-error]]
+           [seed.core.util :refer [success]]))
 
 (defrecord OpenAccount [number currency applicant holder])
 (defrecord DebitAccount  [account-number amount currency])

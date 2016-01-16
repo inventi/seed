@@ -1,9 +1,9 @@
-(ns seed.transfer
+(ns seed.accounts.transfer
   (require [automat.core :as a]
-           [seed.process :as process]
-           [seed.command :as command]
-           [seed.account :as account]
-           [seed.util :refer [success]]))
+           [seed.core.process :as process]
+           [seed.core.command :as command]
+           [seed.accounts.account :as account]
+           [seed.core.util :refer [success]]))
 
 (defrecord InitiateTransfer [id from to amount])
 (defrecord CompleteTransfer [])

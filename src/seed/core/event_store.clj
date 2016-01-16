@@ -1,15 +1,15 @@
-(ns seed.event-store
+(ns seed.core.event-store
   (require [com.stuartsierra.component :as component]
            [clojure.core.async :as async :refer [chan close! >!! >! <! go go-loop]]
            [clojure.data.json :as json]
-           [seed.util :refer [keywordize-name keywordize-exception]])
+           [seed.core.util :refer [keywordize-name keywordize-exception]])
   (import [akka.actor ActorSystem]
           [eventstore.tcp ConnectionActor]
           [eventstore SubscriptionObserver]
           [eventstore.j
            SettingsBuilder EsConnectionFactory EventDataBuilder WriteEventsBuilder ReadStreamEventsBuilder
            SubscribeToBuilder]
-          [seed.eventstore.j DelegatingActor MsgReceiver]
+          [seed.core.eventstore.j DelegatingActor MsgReceiver]
           [java.net InetSocketAddress]))
 
 (defrecord Position [commit prepare])

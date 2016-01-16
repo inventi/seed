@@ -1,17 +1,17 @@
-(ns seed.accounts
+(ns seed.accounts.app
  (require [com.stuartsierra.component :as component]
-          [seed.event-store :as event-store]
-          [seed.event-bus :as event-bus]
-          [seed.transfer :as transfer]
-          [seed.process :as process]
-          [seed.process-repo :as process-repo]))
+          [seed.core.event-store :as event-store]
+          [seed.core.event-bus :as event-bus]
+          [seed.accounts.transfer :as transfer]
+          [seed.core.process :as process]
+          [seed.core.process-repo :as process-repo]))
 
 (defrecord Accounts []
   component/Lifecycle
 
   (start [{:keys [event-store] :as component}]
     (process/trigger
-      transfer/transfer-process seed.transfer.TransferInitiated
+      transfer/transfer-process seed.accounts.transfer.TransferInitiated
       component))
 
   (stop [component]

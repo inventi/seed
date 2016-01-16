@@ -1,7 +1,7 @@
-(ns seed.command
-  (require [seed.event-store :as es]
+(ns seed.core.command
+  (require [seed.core.event-store :as es]
            [clojure.core.async :as async :refer [go-loop chan close! >! <! go]]
-           [seed.util :refer [camel->lisp get-namespace new-empty-event success error]]
+           [seed.core.util :refer [camel->lisp get-namespace new-empty-event success error]]
            [clojure.tools.logging :as log]))
 
 (defrecord CommandError [error])
@@ -87,4 +87,5 @@
 
   ([init-state id command metadata event-store]
    (run-cmd-with-retry init-state id command metadata event-store)))
+
 

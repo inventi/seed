@@ -1,0 +1,1 @@
+(ns seed.accounts.deposit)

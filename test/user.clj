@@ -2,8 +2,8 @@
   (:require [com.stuartsierra.component :as component]
             [clojure.tools.namespace.repl :refer (refresh)]
             [clojure.core.async :refer [<!!]]
-            [seed.accounts :as app]
-            [seed.account :as account]))
+            [seed.accounts.app :as app]
+            [seed.accounts.account :as account]))
 
 (def system nil)
 

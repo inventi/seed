@@ -1,7 +1,7 @@
-(ns seed.event-bus
+(ns seed.core.event-bus
   (require [com.stuartsierra.component :as component]
            [clojure.core.async :as async :refer [chan mult]]
-           [seed.event-store :as es]))
+           [seed.core.event-store :as es]))
 
 (defrecord Pub [chan pub])
 
