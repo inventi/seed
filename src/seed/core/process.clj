@@ -7,8 +7,6 @@
            [clojure.core.async :as async :refer [go <! >! go-loop]]
            [clojure.tools.logging :as log]))
 
-
-
 (defn- with-event [state event]
   (if (empty? state)
         (assoc state
@@ -33,23 +31,22 @@
   (command/handle-cmd {} (:stream-id cmd) cmd {:process-id process-id} event-store))
 
 
-(defn step-process [id process {:keys [metadata] :as event}
-                    {:keys [process-repo event-store] :as system}]
+(defn step-process [id fsm {:keys [metadata] :as event} event-store process-repo]
   (go
-    (let [state (transition id process event process-repo)
+    (let [state (transition id fsm event process-repo)
           cmd (get-in state [:value :command])]
       (if (:accepted? state)
         true
         (let [{:keys [error]} (<!(dispatch-command cmd id event-store))]
           (if error
-            (step-process id process (failed-event error metadata) system)
+            (step-process id fsm (failed-event error metadata) event-store process-repo)
             false))))))
 
-(defn- start-process [events-ch id process accounts-cmp]
+(defn fsm-loop [fsm event-store process-repo events-ch id]
   (go-loop []
            (when-some [event (<! events-ch)]
                       (->
-                        (<! (step-process id process event accounts-cmp))
+                        (<! (step-process id fsm event event-store process-repo))
                         (if
                           (async/close! events-ch)
                           (recur)))))
@@ -58,7 +55,7 @@
 (defn process-id  [e]
   (get-in e  [:metadata :process-id]))
 
-(defn trigger [process event-class {:keys [event-bus] :as accounts}]
+(defn trigger [process-loop event-class event-bus]
   (let [event-type (.getSimpleName event-class)
         ch (eb/subscribe-by :event-type event-type event-bus)]
     (go-loop []
@@ -66,8 +63,7 @@
                         (let [id (get-in event [:data :id])]
                           (log/info "triggering process id" id)
                           (-> (eb/subscribe-by process-id id event-bus)
-                              (start-process id process accounts)
+                              (process-loop id)
                               (async/>! (update-in event [:metadata] assoc :process-id id))))
-                        (recur))))
-  accounts)
+                        (recur)))))
 

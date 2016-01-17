@@ -11,9 +11,13 @@
 (defrecord Accounts []
   component/Lifecycle
 
-  (start [{:keys [event-store] :as component}]
-    (process/trigger
-      transfer/transfer-process seed.accounts.transfer.TransferInitiated
+  (start [{:keys [event-bus event-store process-repo] :as component}]
+    (let [transfer-loop (partial
+                          process/fsm-loop transfer/transfer-process
+                          event-store process-repo)]
+      (process/trigger transfer-loop
+                       seed.accounts.transfer.TransferInitiated
+                       event-bus)
       component))
 
   (stop [component]
