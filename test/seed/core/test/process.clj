@@ -19,7 +19,7 @@
 
 (deftest test-transition
   (is (= {:accepted? false, :state-index 1, :value  {:event  {:event-type  "A"}, :trigger-event  {:event-type  "A"}}}
-         (drop-unused-keys (#'seed.process/next-state {} machine {:event-type "A"}))))
+         (drop-unused-keys (#'seed.core.process/next-state {} machine {:event-type "A"}))))
 
   (is (= {:accepted? true, :state-index 2, :value {:event  {:event-type  "B"}}}
-         (drop-unused-keys (#'seed.process/next-state (state {:accepted? false :state-index 1}) machine {:event-type "B"})))))
+         (drop-unused-keys (#'seed.core.process/next-state (state {:accepted? false :state-index 1}) machine {:event-type "B"})))))

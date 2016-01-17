@@ -1,6 +1,7 @@
 (ns seed.core.test.command
   (require [clojure.core.async :refer [go <!!]]
-           [seed.core.util :refer [success error]])
+           [seed.core.util :refer [success error]]
+           [seed.core.event-store :as es])
   (use [seed.core.command]
        [clojure.test]))
 
@@ -45,13 +46,13 @@
 
 (defn load-events-with-error [stream ver es]
   (go
-    [nil (seed.event-store/->EventStoreError :some-error "some error")]))
+    [nil (es/->EventStoreError :some-error "some error")]))
 
 (defn save-events-with-success [events & args]
   (go (success events)))
 
 (defn save-events-with-wrong-version [events & args]
-  (go [nil (seed.event-store/->EventStoreError :wrong-expected-version "")]))
+  (go [nil (es/->EventStoreError :wrong-expected-version "")]))
 
 (deftest test-next-state
   (testing "should throw exception on event with no handler"
@@ -77,56 +78,56 @@
 (deftest test-load-stream-state
   (testing "version nill on no events"
     (is (= [{:version nil} nil]
-           (with-redefs [seed.event-store/load-events (fn [& args] (go (success nil)))]
+           (with-redefs [es/load-events (fn [& args] (go (success nil)))]
              (<!! (load-stream-state! {} "stream-id" *ns* nil))))))
   (testing
     (is (= [{:status :success2 :version 3} nil]
-           (with-redefs [seed.event-store/load-events load-events-at-once]
+           (with-redefs [es/load-events load-events-at-once]
              (<!! (load-stream-state! {} "stream-id" *ns* nil))))))
 
   (testing "should load events in batches"
     (is (= [{:status :success2 :version 3} nil]
-           (with-redefs [seed.event-store/load-events load-events-in-batches]
+           (with-redefs [es/load-events load-events-in-batches]
              (<!! (load-stream-state! {} "stream-id" *ns* nil))))))
 
   (testing "should resume loading from given state"
     (is (= [{:status :success :version 3} nil]
-           (with-redefs [seed.event-store/load-events load-events-in-batches]
+           (with-redefs [es/load-events load-events-in-batches]
              (<!! (load-stream-state! {:version 2} "stream-id" *ns* nil))))))
 
   (testing "should return error"
-    (is (= [nil (seed.event-store/->EventStoreError :some-error "some error")]
-           (with-redefs [seed.event-store/load-events load-events-with-error]
+    (is (= [nil (es/->EventStoreError :some-error "some error")]
+           (with-redefs [es/load-events load-events-with-error]
              (<!! (load-stream-state! {} "stream-id" *ns* nil)))))))
 
 (deftest test-run-command
   (is (= {:events [(->SuccessHappened)]
           :loaded-state {:state "test" :status :success2 :version 3}
           :error nil}
-         (with-redefs [seed.event-store/load-events load-events-in-batches
-                       seed.event-store/save-events save-events-with-success]
+         (with-redefs [es/load-events load-events-in-batches
+                       es/save-events save-events-with-success]
            (<!! (run-cmd {:state "test"} "event-id" (->DoSuccess) {} nil)))))
 
   (testing "should return event store error if load fails"
     (is (= {:events nil
             :loaded-state nil
-            :error (seed.event-store/->EventStoreError :some-error  "some error") }
-           (with-redefs [seed.event-store/load-events load-events-with-error]
+            :error (es/->EventStoreError :some-error  "some error") }
+           (with-redefs [es/load-events load-events-with-error]
              (<!! (run-cmd {} "event-id" (->DoSuccess) {} nil))))))
 
   (testing "should return state and command error if command fails"
     (is (= {:events nil
             :loaded-state {:status :success2 :version 3}
             :error (->CommandError "command went wrong")}
-           (with-redefs [seed.event-store/load-events load-events-in-batches]
+           (with-redefs [es/load-events load-events-in-batches]
              (<!! (run-cmd {} "event-id" (->DoError) {} nil))))))
 
   (testing "should return state, events and write error if write fails"
     (is (= {:events [(->SuccessHappened)]
             :loaded-state {:status :success2 :version 3}
-            :error (seed.event-store/->EventStoreError :wrong-expected-version  "")}
-           (with-redefs [seed.event-store/load-events load-events-in-batches
-                         seed.event-store/save-events save-events-with-wrong-version]
+            :error (es/->EventStoreError :wrong-expected-version  "")}
+           (with-redefs [es/load-events load-events-in-batches
+                         es/save-events save-events-with-wrong-version]
              (<!! (run-cmd {} "event-id" (->DoSuccess) {} nil)))))))
 
 
