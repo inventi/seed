@@ -24,32 +24,15 @@
 (defn- start-connection! [system settings]
   (.actorOf system (ConnectionActor/getProps settings) "es-connection"))
 
-(defn- start-watcher! [con system]
-  (let [c (chan)
-        watcher (.actorOf system
-                          (DelegatingActor/props
-                            (reify
-                              MsgReceiver
-                              (onInit [this actor]
-                                (.watch (.getContext actor) con))
-                              (onReceive [this message]
-                                (>!! c message)))))]
-    (async/go-loop []
-             (when-let [msg (async/<! c)]
-               (println "GOT DEATH MSG!!" msg)
-               (recur)))))
-
 (defrecord EventStore [host port user password]
   component/Lifecycle
 
   (start [component]
     (if-not (:actor-system component)
-      (let [actor-system (ActorSystem/create)
-            actor-con (start-connection! actor-system (build-settings component))]
-        (start-watcher! actor-con actor-system)
+      (let [actor-system (ActorSystem/create)]
         (assoc component
                :actor-system actor-system
-               :actor-con actor-con
+               :actor-con (start-connection! actor-system (build-settings component))
                :es-con (EsConnectionFactory/create actor-system (build-settings component))))
       component))
 
