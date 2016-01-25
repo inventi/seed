@@ -26,10 +26,11 @@
       (success [(map->AccountDebited command)])))
 
   CreditAccount
-  (perform [command state]
+  (perform [{:keys [amount] :as command}
+            {:keys [balance] :as state}]
     (if-not (account-exist? state)
       (cmd-error :account-doesnt-exist)
-      (if (<= (:balance state) 0)
+      (if (< (- balance amount) 0)
         (cmd-error :insuficient-balance)
         (success [(map->AccountCredited command)])))))
 

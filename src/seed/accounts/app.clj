@@ -6,7 +6,19 @@
           [seed.core.process :as process]
           [seed.core.process-repo :as process-repo]
           [seed.core.command :as command]
-          [seed.accounts.account :as account]))
+          [seed.accounts.account :as account]
+          [seed.accounts.api :as api]
+          [ring.middleware.json :refer  [wrap-json-body wrap-json-response]]
+          [immutant.web :as web]))
+
+(defn wrap-system [handler system]
+  (fn [req]
+    (handler (assoc req :accounts system))))
+
+(def handler
+  (-> #'api/routes
+      wrap-json-response
+      (wrap-json-body {:keywords? true})))
 
 (defrecord Accounts []
   component/Lifecycle
@@ -18,6 +30,7 @@
       (process/trigger transfer-loop
                        seed.accounts.transfer.TransferInitiated
                        event-bus)
+      (web/run (wrap-system handler component))
       component))
 
   (stop [component]
@@ -48,3 +61,5 @@
 (defn transfer-money [from to amount {:keys [event-store]}]
   (let [id (str (java.util.UUID/randomUUID))]
     (command/handle-cmd id (transfer/->InitiateTransfer id from to amount) event-store)))
+
+

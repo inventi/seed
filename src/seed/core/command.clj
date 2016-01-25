@@ -34,14 +34,12 @@
 (defn current-state [event-ns state events]
   (reduce (partial next-state event-ns) state (reverse events)))
 
-(defn from-event [version]
-  (if (nil? version) 0 (inc version)))
-
 (defn load-stream-state! [init-state id stream-ns event-store]
   (go-loop [state init-state
             version (:version init-state)]
            (let [stream (str stream-ns "-" id)
-                 [events err :as result] (<!(es/load-events stream (from-event version) event-store))]
+                 event-num (if (nil? version) 0 (inc version))
+                 [events err :as result] (<!(es/load-events stream event-num event-store))]
              (if err
                result
                (if (empty? events)

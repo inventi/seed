@@ -20,9 +20,9 @@
 
 (defn- transition [id machine event process-repo]
   (->
-      (prepo/load-state-with-retry! id process-repo)
+      (prepo/load-state! id process-repo)
       (next-state machine event)
-      (prepo/save-state-with-retry! id process-repo)))
+      (prepo/save-state! id process-repo)))
 
 (defn failed-event [error metadata]
   {:event-type "CommandFailed" :metadata metadata :data {:cause (:error error)}})
@@ -30,17 +30,15 @@
 (defn- dispatch-command [cmd process-id event-store]
   (command/handle-cmd {} (:stream-id cmd) cmd {:process-id process-id} event-store))
 
-
 (defn step-process [id fsm {:keys [metadata] :as event} event-store process-repo]
   (go
     (let [state (transition id fsm event process-repo)
           cmd (get-in state [:value :command])]
-      (if (:accepted? state)
-        true
+      (when-not (:accepted? state)
         (let [{:keys [error]} (<!(dispatch-command cmd id event-store))]
           (if error
-            (step-process id fsm (failed-event error metadata) event-store process-repo)
-            false))))))
+            (step-process id fsm (failed-event error metadata) event-store process-repo))))
+      (:accepted? state))))
 
 (defn fsm-loop [fsm event-store process-repo events-ch id]
   (go-loop []

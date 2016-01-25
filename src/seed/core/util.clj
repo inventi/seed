@@ -1,5 +1,6 @@
 (ns seed.core.util
-  (require [clojure.string :refer [lower-case]]))
+  (require [clojure.string :refer [lower-case]]
+           [clojure.core.memoize :refer [memo]]))
 
 (defn- uppercase? [c]
   (Character/isUpperCase c))
@@ -46,7 +47,7 @@
         (repeat (ctor-args-max rc) nil)))
 
 (def new-empty-event
-  (memoize
+  (memo
     (fn [event-type]
       (when-let [event-class ^Class (resolve (symbol event-type))]
         (eval `(new ~(symbol event-type)

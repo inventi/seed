@@ -69,7 +69,7 @@
 (extend-protocol TransferProcess
   TransferInitiated
   (state [event state]
-    (assoc state
+    (assoc event
          :state :initiated))
 
   TransferCompleted
@@ -80,7 +80,8 @@
   TransferFailed
   (state [event state]
     (assoc state
-           :state :failed)))
+           :state :failed
+           :cause (:cause event))))
 
 (extend-protocol command/CommandHandler
   InitiateTransfer

@@ -7,8 +7,8 @@
           [eventstore.tcp ConnectionActor]
           [eventstore SubscriptionObserver]
           [eventstore.j
-           SettingsBuilder EsConnectionFactory EventDataBuilder WriteEventsBuilder ReadStreamEventsBuilder
-           SubscribeToBuilder]
+           SettingsBuilder EsConnectionFactory EventDataBuilder
+           WriteEventsBuilder ReadStreamEventsBuilder SubscribeToBuilder]
           [seed.core.eventstore.j DelegatingActor MsgReceiver]
           [java.net InetSocketAddress]))
 
@@ -60,7 +60,7 @@
                                  (async/>! chan message)
                                  (close! chan)))))))
 
-(defn- send->es [action {:keys [actor-system actor-con]}]
+(defn- send! [action {:keys [actor-system actor-con]}]
   (when (terminated? actor-con)
     (throw (IllegalStateException. "No connection to event store!")))
   (let [chan (chan)]
@@ -75,7 +75,7 @@
       (.data (json/write-str data))
       (.metadata (json/write-str metadata)))))
 
-(defn- data->json [data]
+(defn- as-json [data]
   (json/read
     (java.io.InputStreamReader.
       (java.io.ByteArrayInputStream.
@@ -85,8 +85,8 @@
 (defn record->event [record]
   (assoc {}
          :event-type (.. record data eventType)
-         :data (data->json (.. record data data))
-         :metadata (data->json (.. record data metadata))
+         :data (as-json (.. record data data))
+         :metadata (as-json (.. record data metadata))
          :event-number (.. record number value)))
 
 (defn indexed->event [event]
@@ -121,9 +121,9 @@
 (defn- exception->error [e]
   (->EventStoreError (keywordize-exception e) (.getMessage e)))
 
-(defn- result->error
+(defn- error
   ([msg]
-   (result->error msg nil))
+   (error msg nil))
 
   ([msg expected-version]
    (when (= (type msg) akka.actor.Status$Failure)
@@ -137,9 +137,9 @@
     [nil
      (->
        (write-stream-msg stream events expected-version)
-       (send->es event-store)
+       (send! event-store)
        <!
-       (result->error expected-version))]))
+       (error expected-version))]))
 
 (defn stream [stream-ns id]
   (str stream-ns "-" id))
@@ -151,14 +151,14 @@
 (defn- read-events-from-stream [stream from-event-num event-store]
   (let [result-chan (-> stream
                         (read-stream-msg from-event-num)
-                        (send->es event-store))]
+                        (send! event-store))]
     (async/go
       (let [result (async/<! result-chan)
-            error (result->error result)]
-        (if error
-          (condp = (:error error)
+            err (error result)]
+        (if err
+          (condp = (:error err)
             :stream-not-found [`() nil]
-            [nil error])
+            [nil err])
           [(reverse (map record->event (get-records result))) nil])))))
 
 (defn save-events [events stream-id expected-version event-store]
@@ -172,7 +172,9 @@
   (->EventStore "192.168.99.100" 1113 "admin" "changeit"))
 
 (defn system-event? [event]
-  (.startsWith (.. event event data eventType) "$"))
+  (->
+    (.. event event data eventType)
+    (.startsWith  "$")))
 
 (defn subscribe->live-events! [{:keys [es-con] :as event-store}]
   (let [events-chan (chan)]
@@ -182,8 +184,7 @@
         (onLiveProcessingStart [this subscription])
         (onEvent [this event subscription]
           (when-not (system-event? event)
-            (when-not
-              (>!! events-chan (indexed->event event))
+            (when-not (>!! events-chan (indexed->event event))
               (.close subscription))))
         (onError [this e])
         (onClose [this]

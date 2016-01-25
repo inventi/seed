@@ -3,7 +3,8 @@
             [clojure.tools.namespace.repl :refer (refresh)]
             [clojure.core.async :refer [<!!]]
             [seed.accounts.app :as app]
-            [seed.accounts.account :as account]))
+            [seed.accounts.account :as account]
+            [clojure.core.memoize :refer [memo-clear!]]))
 
 (def system nil)
 
@@ -23,6 +24,7 @@
   (start))
 
 (defn reset []
+  (memo-clear! seed.core.util/new-empty-event)
   (stop)
   (refresh :after 'user/go))
 
@@ -32,3 +34,4 @@
     (<!! (:chan acc))
     (app/debitaccount! x1 800 system))
   (def x2  (str  (:number (app/openaccount! "g2" system)))))
+
