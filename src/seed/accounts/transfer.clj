@@ -63,10 +63,7 @@
       :complete-transfer complete-transfer
       :fail-transfer fail-transfer}}))
 
-(defprotocol TransferProcess
-  (state [event state]))
-
-(extend-protocol TransferProcess
+(extend-protocol command/Aggregate
   TransferInitiated
   (state [event state]
     (assoc event

@@ -9,6 +9,9 @@
 (defprotocol CommandHandler
     (perform  [command state]))
 
+(defprotocol Aggregate
+    (state  [event state]))
+
 (defn cmd-error [e]
   (error (->CommandError e)))
 
@@ -23,17 +26,8 @@
   (map #(assoc (es-event %)
                :metadata metadata) events))
 
-(defn state-fn [event-ns]
-  (ns-resolve event-ns (symbol "state")))
-
-(defn next-state [event-ns state event]
-  (if-let [apply-event (state-fn event-ns)]
-    (apply-event event state)
-    (throw (IllegalStateException. (str "event " (.getName (type event)) " doesn't exist, or has no state function in its namespace")))))
-
-
-(defn current-state [event-ns state events]
-  (reduce (partial next-state event-ns) state (reverse events)))
+(defn current-state [init-state events]
+  (reduce #(state %2 %1) init-state (reverse events)))
 
 (defn load-stream-state! [init-state id stream-ns event-store]
   (go-loop [state init-state
@@ -48,7 +42,7 @@
                  (recur
                    (->> events
                         (map (partial seed-event stream-ns))
-                        (current-state stream-ns state))
+                        (current-state state))
                    (:event-number (first events))))))))
 
 (defn run-cmd [state id command metadata event-store]

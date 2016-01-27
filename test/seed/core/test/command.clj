@@ -19,16 +19,12 @@
   (perform [command state]
     (cmd-error "command went wrong")))
 
-(defprotocol TestAggregate
-  (state [event state]))
-
-(extend-protocol TestAggregate
+(extend-protocol Aggregate
   SuccessHappened
   (state [event state]
     (if (:status state)
       (assoc state :status :success2)
       (assoc state :status :success))))
-
 
 (defn load-events-at-once [stream ver es]
   (go
@@ -53,22 +49,6 @@
 
 (defn save-events-with-wrong-version [events & args]
   (go [nil (es/->EventStoreError :wrong-expected-version "")]))
-
-(deftest test-next-state
-  (testing "should throw exception on event with no handler"
-    (is (= IllegalStateException
-           (try
-             (next-state `seed.command {} (->NoHandler))
-             (catch IllegalStateException e
-               (type e)))))
-    (is (= IllegalArgumentException)
-        (try
-             (next-state *ns* {} (->NoHandler))
-             (catch IllegalArgumentException e
-               (type e)))))
-  (testing "should update state"
-    (is (= {:status :success}
-           (next-state *ns* {} (->SuccessHappened))))))
 
 (deftest test-current-state
   (testing "should apply all events"

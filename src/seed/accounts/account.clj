@@ -3,7 +3,6 @@
            [seed.core.command :as command :refer [cmd-error]]
            [seed.core.util :refer [success]]))
 
-
 (defrecord OpenAccount [number currency applicant holder])
 (defrecord DebitAccount  [account-number amount currency])
 (defrecord CreditAccount [account-number amount currency])
@@ -12,11 +11,7 @@
 (defrecord AccountCredited [amount currency])
 (defrecord AccountDebited [amount currency])
 
-
-(defprotocol Account
-  (state[event state]))
-
-(extend-protocol Account
+(extend-protocol command/Aggregate
 
   AccountOpened
   (state [event state]
@@ -58,5 +53,4 @@
       (if (< (- balance amount) 0)
         (cmd-error :insuficient-balance)
         (success [(->AccountCredited amount currency)])))))
-
 
