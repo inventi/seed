@@ -29,7 +29,8 @@
 (defn next-state [event-ns state event]
   (if-let [apply-event (state-fn event-ns)]
     (apply-event event state)
-    (throw (IllegalStateException. (str "event " (.getName (type event)) " doesn't exist")))))
+    (throw (IllegalStateException. (str "event " (.getName (type event)) " doesn't exist, or has no state function in its namespace")))))
+
 
 (defn current-state [event-ns state events]
   (reduce (partial next-state event-ns) state (reverse events)))

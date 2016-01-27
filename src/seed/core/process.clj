@@ -40,15 +40,16 @@
             (step-process id fsm (failed-event error metadata) event-store process-repo))))
       (:accepted? state))))
 
-(defn fsm-loop [fsm event-store process-repo events-ch id]
-  (go-loop []
-           (when-some [event (<! events-ch)]
-                      (->
-                        (<! (step-process id fsm event event-store process-repo))
-                        (if
-                          (async/close! events-ch)
-                          (recur)))))
-  events-ch)
+(defn fsm-loop [fsm event-store process-repo]
+  (fn [events-ch id]
+    (go-loop []
+             (when-some [event (<! events-ch)]
+                        (->
+                          (<! (step-process id fsm event event-store process-repo))
+                          (if
+                            (async/close! events-ch)
+                            (recur)))))
+    events-ch))
 
 (defn process-id  [e]
   (get-in e  [:metadata :process-id]))

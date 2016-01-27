@@ -2,8 +2,10 @@
   (:require [com.stuartsierra.component :as component]
             [clojure.tools.namespace.repl :refer (refresh)]
             [clojure.core.async :refer [<!!]]
+            [seed.accounts.api :as api]
             [seed.accounts.app :as app]
             [seed.accounts.account :as account]
+            [seed.core.command :as command]
             [clojure.core.memoize :refer [memo-clear!]]))
 
 (def system nil)
@@ -29,9 +31,7 @@
   (refresh :after 'user/go))
 
 (defn acc [system]
-  (let [acc (app/openaccount! "g1" system)]
-    (def x1 (str (:number acc)))
-    (<!! (:chan acc))
-    (app/debitaccount! x1 800 system))
-  (def x2  (str  (:number (app/openaccount! "g2" system)))))
+  (def x1 (api/openaccount! "g1" system))
+  (command/handle-cmd x1 (account/->DebitAccount x1 800 "EUR") (:event-store system))
+  (def x2  (api/openaccount! "g2" system)))
 

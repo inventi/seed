@@ -1,6 +1,7 @@
 (ns seed.accounts.api
   (:require  [compojure.core :refer [defroutes context GET POST]]
             [compojure.route :as route]
+            [clojure.core.async :refer [<!!]]
             [seed.core.command :as command]
             [seed.accounts.account :as account]
             [seed.accounts.transfer :as transfer]
@@ -8,12 +9,12 @@
 
 (defn openaccount! [party {event-store :event-store}]
   (let [number (str (java.util.UUID/randomUUID))]
-    (command/handle-cmd number (account/->OpenAccount number "EUR" party party) event-store)
+    (<!! (command/handle-cmd number (account/->OpenAccount number "EUR" party party) event-store))
     number))
 
 (defn state [id stream-ns event-store]
   (let [[state err]
-        (clojure.core.async/<!! (command/load-stream-state! {} id stream-ns event-store))]
+        (<!! (command/load-stream-state! {} id stream-ns event-store))]
     state))
 
 (defn account-state [number {event-store :event-store}]
