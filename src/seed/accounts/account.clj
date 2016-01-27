@@ -4,10 +4,10 @@
            [seed.core.util :refer [success]]))
 
 (defrecord OpenAccount [number currency applicant holder])
-(defrecord DebitAccount  [account-number amount currency])
-(defrecord CreditAccount [account-number amount currency])
+(defrecord DebitAccount  [number amount currency])
+(defrecord CreditAccount [number amount currency])
 
-(defrecord AccountOpened [account-number currency applicant holder])
+(defrecord AccountOpened [number currency applicant holder])
 (defrecord AccountCredited [amount currency])
 (defrecord AccountDebited [amount currency])
 
@@ -17,7 +17,7 @@
   (state [event state]
     (assoc state
            :state :created
-           :number (:account-number event)
+           :number (:number event)
            :balance 0))
 
   AccountDebited
@@ -37,7 +37,7 @@
 (extend-protocol command/CommandHandler
   OpenAccount
   (perform [command state]
-    (success [(apply ->AccountOpened (vals command))]))
+    (success [(map->AccountOpened command)]))
 
   DebitAccount
   (perform [{:keys [amount currency]} state]
