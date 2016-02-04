@@ -3,6 +3,7 @@
             [compojure.route :as route]
             [clojure.core.async :refer [<!!]]
             [seed.core.command :as command]
+            [seed.core.aggregate :as aggregate]
             [seed.accounts.account :as account]
             [seed.accounts.transfer :as transfer]
             [ring.util.response :refer  [response]]))
@@ -14,7 +15,7 @@
 
 (defn state [id stream-ns event-store]
   (let [[state err]
-        (<!! (command/load-stream-state! {} id stream-ns event-store))]
+        (<!! (aggregate/load-state! {} id stream-ns event-store))]
     state))
 
 (defn account-state [number {event-store :event-store}]

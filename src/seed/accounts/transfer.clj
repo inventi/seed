@@ -2,6 +2,7 @@
   (require [automat.core :as a]
            [seed.core.process :as process]
            [seed.core.command :as command]
+           [seed.core.aggregate :as aggregate]
            [seed.accounts.account :as account]
            [seed.core.util :refer [success]]))
 
@@ -63,7 +64,7 @@
       :complete-transfer complete-transfer
       :fail-transfer fail-transfer}}))
 
-(extend-protocol command/Aggregate
+(extend-protocol aggregate/Aggregate
   TransferInitiated
   (state [event state]
     (assoc event
