@@ -1,6 +1,7 @@
 (ns seed.core.process-repo
   (:refer-clojure :exclude  [update])
-  (require [com.stuartsierra.component :as component])
+  (require [mount.core :refer  [defstate]]
+           [seed.core.config :refer [config]])
   (use korma.db)
   (use korma.core))
 
@@ -12,33 +13,11 @@
     {:make-pool? false
      :datasource korma-pool}))
 
-(defrecord ProcessRepo [config]
-  component/Lifecycle
+(defstate pool
+  :start (datasource (:db config))
+  :stop (.close (:datasource pool)))
 
-  (start [component]
-    (if-not (:pool component)
-      (let [pool (datasource (:config component))]
-        (assoc
-          component
-          :pool pool
-          :db (create-db pool)))
-      component))
-
-  (stop [component]
-    (if-let [pool (:pool component)]
-      (do
-        (.close (:datasource pool))
-        (assoc component
-               :pool nil
-               :db nil))
-      component)))
-
-(defn new-process-repo []
-  (->ProcessRepo {:db  "seed"
-                  :user  "seed"
-                  :password  "seed"
-                  :host  "192.168.99.100"}))
-
+(defstate db :start (create-db pool))
 
 (declare process)
 
@@ -68,9 +47,8 @@
     (select process
             (where {:id (uuid id)}))))
 
-(defn save-state! [state id process-repo]
-  (with-db
-       (:db process-repo)
+(defn save-state! [state id]
+  (with-db db
        (if (new? id)
          (insert process
                  (values
@@ -97,9 +75,8 @@
            :checkpoint nil)
     (clojure.set/map-invert var-mapping))))
 
-(defn load-state! [id process-repo]
-  (with-db
-       (:db process-repo)
+(defn load-state! [id]
+  (with-db db
        (if-not (new? id)
          (as-json
            (first

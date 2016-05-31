@@ -1,5 +1,6 @@
 (ns seed.core.event-store
-  (require [com.stuartsierra.component :as component]
+  (require [mount.core :refer  [defstate]]
+           [seed.core.config :refer [config]]
            [clojure.core.async :as async :refer [chan close! >!! >! <! go go-loop]]
            [clojure.data.json :as json]
            [seed.core.util :refer [keywordize-name keywordize-exception]])
@@ -24,32 +25,22 @@
 (defn- start-connection! [system settings]
   (.actorOf system (ConnectionActor/getProps settings) "es-connection"))
 
-(defrecord EventStore [host port user password]
-  component/Lifecycle
 
-  (start [component]
-    (if-not (:actor-system component)
-      (let [actor-system (ActorSystem/create)]
-        (assoc component
-               :actor-system actor-system
-               :actor-con (start-connection! actor-system (build-settings component))
-               :es-con (EsConnectionFactory/create actor-system (build-settings component))))
-      component))
+(defstate actor-system
+  :start (ActorSystem/create)
+  :stop (.shutdown actor-system))
 
-  (stop [component]
-    (if-let [actor-system (:actor-system component)]
-      (do
-        (.shutdown actor-system)
-        (assoc component
-               :actor-system nil
-               :actor-con nil
-               :es-con nil))
-      component)))
+(defstate actor-con
+  :start (start-connection! actor-system (build-settings (:event-store config))))
+
+(defstate es-con
+  :start (EsConnectionFactory/create actor-system (build-settings (:event-store config))))
+
 
 (defn terminated? [actor]
   (.isTerminated actor))
 
-(defn- new-result-actor [chan actor-system]
+(defn- new-result-actor [chan]
   (.actorOf
     actor-system
     (DelegatingActor/props (reify
@@ -59,11 +50,11 @@
                                  (async/put! chan message)
                                  (close! chan))))))
 
-(defn- send! [action {:keys [actor-system actor-con]}]
+(defn- send! [action]
   (when (terminated? actor-con)
     (throw (IllegalStateException. "No connection to event store!")))
   (let [chan (chan)]
-    (.tell actor-con action (new-result-actor chan actor-system))
+    (.tell actor-con action (new-result-actor chan))
     chan))
 
 (defn event->record [{:keys [event-type data metadata] :as event}]
@@ -131,12 +122,12 @@
          (assoc cause :expected-version expected-version)
          cause)))))
 
-(defn- write-events-to-stream [events stream expected-version event-store]
+(defn- write-events-to-stream [events stream expected-version]
   (go
     [nil
      (->
        (write-stream-msg stream events expected-version)
-       (send! event-store)
+       send!
        <!
        (error expected-version))]))
 
@@ -147,10 +138,10 @@
   (when result
     (.eventsJava result)))
 
-(defn- read-events-from-stream [stream from-event-num event-store]
+(defn- read-events-from-stream [stream from-event-num]
   (let [result-chan (-> stream
                         (read-stream-msg from-event-num)
-                        (send! event-store))]
+                        send!)]
     (async/go
       (let [result (async/<! result-chan)
             err (error result)]
@@ -160,22 +151,19 @@
             [nil err])
           [(reverse (map record->event (get-records result))) nil])))))
 
-(defn save-events [events stream-id expected-version event-store]
-  (write-events-to-stream events stream-id expected-version event-store))
+(defn save-events [events stream-id expected-version]
+  (write-events-to-stream events stream-id expected-version))
 
 (defn load-events
-  [stream-id from-event-num event-store]
-  (read-events-from-stream stream-id from-event-num event-store))
-
-(defn new-event-store []
-  (->EventStore "192.168.99.100" 1113 "admin" "changeit"))
+  [stream-id from-event-num]
+  (read-events-from-stream stream-id from-event-num))
 
 (defn system-event? [event]
   (->
     (.. event event data eventType)
     (.startsWith  "$")))
 
-(defn subscribe->live-events! [{:keys [es-con] :as event-store}]
+(defn subscribe->live-events! []
   (let [events-chan (chan)]
     (.subscribeToAll
       es-con

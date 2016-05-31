@@ -13,12 +13,12 @@
 (defn seed-event [event-ns {:keys [event-type data]}]
   (into (new-empty-event (str event-ns "." event-type)) data))
 
-(defn load-state! [init-state id aggregate-ns event-store]
+(defn load-state! [init-state id aggregate-ns]
   (go-loop [state init-state
             version (:version init-state)]
            (let [stream (str aggregate-ns "-" id)
                  event-num (if (nil? version) 0 (inc version))
-                 [events err :as result] (<!(es/load-events stream event-num event-store))]
+                 [events err :as result] (<!(es/load-events stream event-num))]
              (if err
                result
                (if (empty? events)
@@ -35,9 +35,9 @@
          :event-type (.getSimpleName (type event))
          :metadata metadata))
 
-(defn save-events! [events metadata version id aggregate-ns event-store]
+(defn save-events! [events metadata version id aggregate-ns]
   (es/save-events
     (map (partial es-event metadata) events)
     (str aggregate-ns "-" id)
-    version  event-store))
+    version))
 

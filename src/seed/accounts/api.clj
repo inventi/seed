@@ -8,25 +8,25 @@
             [seed.accounts.transfer :as transfer]
             [ring.util.response :refer  [response]]))
 
-(defn openaccount! [party {event-store :event-store}]
+(defn openaccount! [party]
   (let [number (str (java.util.UUID/randomUUID))]
-    (<!! (command/handle-cmd number (account/->OpenAccount number "EUR" party party) event-store))
+    (<!! (command/handle-cmd number (account/->OpenAccount number "EUR" party party)))
     number))
 
-(defn state [id stream-ns event-store]
+(defn state [id stream-ns]
   (let [[state err]
-        (<!! (aggregate/load-state! {} id stream-ns event-store))]
+        (<!! (aggregate/load-state! {} id stream-ns))]
     state))
 
-(defn account-state [number {event-store :event-store}]
-  (state number `seed.accounts.account event-store))
+(defn account-state [number]
+  (state number `seed.accounts.account))
 
-(defn transfer-state [id {event-store :event-store}]
-  (state id `seed.accounts.transfer event-store))
+(defn transfer-state [id]
+  (state id `seed.accounts.transfer))
 
-(defn transfer-money [from to amount {:keys [event-store]}]
+(defn transfer-money [from to amount]
   (let [id (str (java.util.UUID/randomUUID))]
-    (command/handle-cmd id (transfer/->InitiateTransfer id from to amount) event-store)
+    (command/handle-cmd id (transfer/->InitiateTransfer id from to amount))
     id))
 
 (defroutes routes

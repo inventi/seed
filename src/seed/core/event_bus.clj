@@ -1,44 +1,31 @@
 (ns seed.core.event-bus
-  (require [com.stuartsierra.component :as component]
+  (require [mount.core :refer  [defstate]]
            [clojure.core.async :as async :refer [chan mult]]
            [seed.core.event-store :as es]))
 
 (defrecord Pub [chan pub])
 
-(defn start-publisher! [event-store publish-chan]
+(defn start-publisher! [publish-chan]
   (async/pipe
-    (es/subscribe->live-events! event-store)
+    (es/subscribe->live-events!)
     publish-chan))
 
-(defrecord EventBus []
-  component/Lifecycle
+(defstate publish-chan
+  :start (doto (chan) start-publisher!)
+  :stop (async/close! publish-chan))
 
-  (start [{:keys [event-store] :as component}]
-    (let [publish-chan (chan)
-          mult (mult publish-chan)]
-      (start-publisher! event-store publish-chan)
-      (assoc component
-             :publish-chan publish-chan
-             :publish-mult mult
-             :pubs (atom {}))))
+(defstate publish-mult
+  :start (mult publish-chan))
 
-  (stop [{:keys [publish-chan pubs] :as component}]
-    (if publish-chan
-      (do
-        (async/close! publish-chan)
-        (assoc component
-               :publish-chan nil))
-      component)))
-
-(defn new-event-bus []
- (->EventBus))
+(defstate pubs
+  :start (atom {}))
 
 (defn- new-pub [f]
   (let [ch (chan)
         pub (async/pub ch f)]
     (->Pub ch pub)))
 
-(defn- get-pub [{:keys [pubs publish-mult]} f]
+(defn- get-pub [f]
   (if-some [pub (get @pubs f)]
            (:pub pub)
            (let [{:keys [chan pub] :as newpub} (new-pub f)]
@@ -46,9 +33,8 @@
              (swap! pubs assoc f newpub)
              pub)))
 
-(defn subscribe-by [f topic event-bus]
+(defn subscribe-by [f topic]
   (let [ch (chan)]
-    (async/sub
-      (get-pub event-bus f) topic ch)
+    (async/sub (get-pub f) topic ch)
     ch))
 

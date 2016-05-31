@@ -12,23 +12,23 @@
 (defn cmd-error [e]
   (error (->CommandError e)))
 
-(defn run-cmd [state id command metadata event-store]
+(defn run-cmd [state id command metadata]
   (go
     (let [aggregate-ns (get-namespace command)
-          [state e :as result]  (<!(aggregate/load-state! state id  aggregate-ns event-store))
+          [state e :as result]  (<!(aggregate/load-state! state id  aggregate-ns))
           [events e :as result] (if (nil? e) (perform command state) result)
           [_ e :as result]      (if (nil? e)
-                                  (<!(aggregate/save-events! events metadata (:version state) id aggregate-ns event-store))
+                                  (<!(aggregate/save-events! events metadata (:version state) id aggregate-ns))
                                   result)]
       {:loaded-state state
        :events events
        :error e})))
 
-(defn run-cmd-with-retry [init-state id command metadata event-store]
+(defn run-cmd-with-retry [init-state id command metadata]
   (go-loop [state init-state
             retries 0]
            (let [{:keys [loaded-state events error] :as result}
-                 (<!(run-cmd state id command metadata event-store))]
+                 (<!(run-cmd state id command metadata))]
              (if (and (= (:error error) :wrong-expected-version)
                       (> 100 retries))
                (do
@@ -38,13 +38,13 @@
                result))))
 
 (defn handle-cmd
-  ([id command event-store]
-   (handle-cmd {} id command event-store))
+  ([id command]
+   (handle-cmd {} id command))
 
-  ([init-state id command event-store]
-   (handle-cmd init-state id command {} event-store))
+  ([init-state id command]
+   (handle-cmd init-state id command {}))
 
-  ([init-state id command metadata event-store]
-   (run-cmd-with-retry init-state id command metadata event-store)))
+  ([init-state id command metadata]
+   (run-cmd-with-retry init-state id command metadata)))
 
 
