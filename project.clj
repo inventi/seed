@@ -15,5 +15,7 @@
                  [org.postgresql/postgresql  "9.4-1206-jdbc42"]
                  [compojure  "1.4.0"]
                  [org.immutant/web  "2.1.2"]
-                 [ring/ring-json  "0.4.0"]]
-  :java-source-paths  ["src"])
+                 [ring/ring-json  "0.4.0"]
+                 ]
+  :java-source-paths  ["src"]
+  :repl-options {:timeout 120000})

@@ -14,7 +14,7 @@
 (defrecord TransferCompleted [])
 (defrecord TransferFailed [])
 
-(def transfer-pattern
+(def pattern
   [(a/or [:transfer-initiated
           :command-failed (a/$ :fail-transfer)
           :transfer-failed]
@@ -55,14 +55,11 @@
     map->FailTransfer
     (assoc state :command)))
 
-(def transfer-process
-  (a/compile
-    [transfer-pattern]
-    {:reducers
-     {:credit-from-account credit-from-account
-      :debit-to-account debit-to-account
-      :complete-transfer complete-transfer
-      :fail-transfer fail-transfer}}))
+(def reducers
+  {:credit-from-account credit-from-account
+   :debit-to-account debit-to-account
+   :complete-transfer complete-transfer
+   :fail-transfer fail-transfer})
 
 (extend-protocol aggregate/Aggregate
   TransferInitiated

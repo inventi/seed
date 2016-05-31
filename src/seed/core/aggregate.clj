@@ -29,18 +29,15 @@
                         (current-state state))
                    (:event-number (first events))))))))
 
-
-(defn es-event [event]
-  (assoc {:data (into {} event)}
-         :event-type (.getSimpleName (type event))))
-
-(defn es-events [events metadata]
-  (map #(assoc (es-event %)
-               :metadata metadata) events))
+(defn es-event [metadata event]
+  (assoc {}
+         :data (into {} event)
+         :event-type (.getSimpleName (type event))
+         :metadata metadata))
 
 (defn save-events! [events metadata version id aggregate-ns event-store]
   (es/save-events
-    (es-events events metadata)
+    (map (partial es-event metadata) events)
     (str aggregate-ns "-" id)
     version  event-store))
 

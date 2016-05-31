@@ -56,9 +56,8 @@
                              MsgReceiver
                              (onInit [this actor])
                              (onReceive [this message]
-                               (async/go
-                                 (async/>! chan message)
-                                 (close! chan)))))))
+                                 (async/put! chan message)
+                                 (close! chan))))))
 
 (defn- send! [action {:keys [actor-system actor-con]}]
   (when (terminated? actor-con)
@@ -184,7 +183,7 @@
         (onLiveProcessingStart [this subscription])
         (onEvent [this event subscription]
           (when-not (system-event? event)
-            (when-not (>!! events-chan (indexed->event event))
+            (when-not (async/put! events-chan (indexed->event event))
               (.close subscription))))
         (onError [this e])
         (onClose [this]

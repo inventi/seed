@@ -1,14 +1,14 @@
 (ns seed.accounts.app
- (require [com.stuartsierra.component :as component]
-          [seed.core.event-store :as event-store]
-          [seed.core.event-bus :as event-bus]
-          [seed.accounts.transfer :as transfer]
-          [seed.core.process :as process]
-          [seed.core.process-repo :as process-repo]
-          [seed.accounts.account :as account]
-          [seed.accounts.api :as api]
-          [ring.middleware.json :refer  [wrap-json-body wrap-json-response]]
-          [immutant.web :as web]))
+  (require [com.stuartsierra.component :as component]
+           [seed.core.event-store :as event-store]
+           [seed.core.event-bus :as event-bus]
+           [seed.accounts.transfer :as transfer]
+           [seed.core.process :as process]
+           [seed.core.process-repo :as process-repo]
+           [seed.accounts.account :as account]
+           [seed.accounts.api :as api]
+           [ring.middleware.json :refer  [wrap-json-body wrap-json-response]]
+           [immutant.web :as web]))
 
 (defn wrap-system [handler system]
   (fn [req]
@@ -23,7 +23,7 @@
   component/Lifecycle
 
   (start [{:keys [event-bus event-store process-repo] :as component}]
-    (let [transfer-loop (process/fsm-loop transfer/transfer-process event-store process-repo)]
+    (let [transfer-loop (process/fsm-loop transfer/pattern transfer/reducers event-store process-repo)]
       (process/trigger transfer-loop
                        seed.accounts.transfer.TransferInitiated
                        event-bus)

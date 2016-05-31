@@ -40,15 +40,19 @@
             (step-process id fsm (failed-event error metadata) event-store process-repo))))
       (:accepted? state))))
 
-(defn fsm-loop [fsm event-store process-repo]
+(defn fsm-loop [fsm-pattern fsm-reducers event-store process-repo]
   (fn [events-ch id]
-    (go-loop []
-             (when-some [event (<! events-ch)]
-                        (->
-                          (<! (step-process id fsm event event-store process-repo))
-                          (if
-                            (async/close! events-ch)
-                            (recur)))))
+    (log/info "compiling pattern")
+    (a/compile  [1 2 3]);automat hangs compiling transfer-pattern, dont know why. But doing this helps, will figure it out later
+    (let [fsm (a/compile [fsm-pattern] {:reducers fsm-reducers})]
+    (log/info "pattern compiled, starting event loop")
+      (go-loop []
+               (when-some [event (<! events-ch)]
+                 (->
+                   (<! (step-process id fsm event event-store process-repo))
+                   (if
+                     (async/close! events-ch)
+                     (recur))))))
     events-ch))
 
 (defn process-id  [e]
