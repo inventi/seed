@@ -6,9 +6,7 @@
 (defrecord Pub [chan pub])
 
 (defn start-publisher! [publish-chan]
-  (async/pipe
-    (es/subscribe->live-events!)
-    publish-chan))
+  (async/pipe (es/live-event-stream) publish-chan))
 
 (defstate publish-chan
   :start (doto (chan) start-publisher!)

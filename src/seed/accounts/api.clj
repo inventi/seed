@@ -48,4 +48,7 @@
 
   (route/not-found  "<h1>Page not found</h1>"))
 
-
+(defn acc []
+  (def x1 (openaccount! "g1"))
+  (command/handle-cmd x1 (account/->DebitAccount x1 800 "EUR"))
+  (def x2  (openaccount! "g2")))

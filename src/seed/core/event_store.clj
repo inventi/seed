@@ -72,12 +72,14 @@
         (.. data value toArray)))
     :key-fn keyword))
 
+(defrecord Event [event-type data metadata event-number])
+
 (defn record->event [record]
-  (assoc {}
-         :event-type (.. record data eventType)
-         :data (as-json (.. record data data))
-         :metadata (as-json (.. record data metadata))
-         :event-number (.. record number value)))
+  (map->Event
+    {:event-type (.. record data eventType)
+     :data (as-json (.. record data data))
+     :metadata (as-json (.. record data metadata))
+     :event-number (.. record number value)}))
 
 (defn indexed->event [event]
   (assoc (record->event (.event event))
@@ -163,7 +165,7 @@
     (.. event event data eventType)
     (.startsWith  "$")))
 
-(defn subscribe->live-events! []
+(defn live-event-stream []
   (let [events-chan (chan)]
     (.subscribeToAll
       es-con

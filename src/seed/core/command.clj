@@ -15,14 +15,13 @@
 (defn run-cmd [state id command metadata]
   (go
     (let [aggregate-ns (get-namespace command)
-          [state e :as result]  (<!(aggregate/load-state! state id  aggregate-ns))
-          [events e :as result] (if (nil? e) (perform command state) result)
-          [_ e :as result]      (if (nil? e)
-                                  (<!(aggregate/save-events! events metadata (:version state) id aggregate-ns))
-                                  result)]
+          [state err :as result]  (<!(aggregate/load-state! state id  aggregate-ns))
+          [events err :as result] (if (nil? err) (perform command state) result)
+          [_ err :as result]      (if (nil? err) (<!(aggregate/save-events!
+                                                      events metadata (:version state) id aggregate-ns)) result)]
       {:loaded-state state
        :events events
-       :error e})))
+       :error err})))
 
 (defn run-cmd-with-retry [init-state id command metadata]
   (go-loop [state init-state

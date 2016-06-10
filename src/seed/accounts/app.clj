@@ -21,5 +21,8 @@
            (process/fsm-loop transfer/pattern transfer/reducers)
            seed.accounts.transfer.TransferInitiated))
 
+(defn start []
+  (mount.core/start))
+
 
 

@@ -8,21 +8,21 @@
            [clojure.tools.logging :as log]))
 
 (defn- with-event [state event]
-  (if (empty? state)
-        (assoc state
-               :event event
-               :trigger-event event)
-        (update-in state [:value] assoc :event event)))
+  (if (:value state)
+    (update-in state [:value] assoc :event event)
+    (assoc state :trigger-event event :event event)))
+
+(defn- input [event]
+  (keyword (camel->lisp (:event-type event))))
 
 (defn- next-state [state machine event]
-  (let [input (keyword (camel->lisp (:event-type event)))]
-    (a/advance machine (with-event state event) input)))
+  (a/advance machine (with-event state event) (input event)))
 
 (defn- transition [id machine event]
   (->
-      (prepo/load-state! id)
-      (next-state machine event)
-      (prepo/save-state! id)))
+    (prepo/load-state! id)
+    (next-state machine event)
+    (prepo/save-state! id)))
 
 (defn failed-event [error metadata]
   {:event-type "CommandFailed" :metadata metadata :data {:cause (:error error)}})
@@ -42,7 +42,6 @@
 
 (defn fsm-loop [fsm-pattern fsm-reducers]
   (log/info "compiling pattern")
-  (a/compile  [1 2 3]);automat hangs compiling transfer-pattern, dont know why. But doing this helps, will figure it out later
   (let [fsm (a/compile [fsm-pattern] {:reducers fsm-reducers})]
     (log/info "pattern compiled, starting event loop")
     (fn [events-ch id]
@@ -52,21 +51,20 @@
                    (<! (step-process id fsm event))
                    (if
                      (async/close! events-ch)
-                     (recur)))))
-      events-ch)))
+                     (recur))))))))
 
-(defn process-id  [e]
-  (get-in e  [:metadata :process-id]))
+(defn process-id [e]
+  (get-in e [:metadata :process-id]))
 
-(defn trigger [process-loop event-class]
-  (let [event-type (.getSimpleName event-class)
-        ch (eb/subscribe-by :event-type event-type)]
+(defn trigger [process-fn event-class]
+  (let [trigger-ch (eb/subscribe-by
+                     :event-type (.getSimpleName event-class))]
     (go-loop []
-             (when-some [event (<! ch)]
-                        (let [id (get-in event [:data :id])]
-                          (log/info "triggering process id" id)
-                          (-> (eb/subscribe-by process-id id)
-                              (process-loop id)
-                              (async/>! (update-in event [:metadata] assoc :process-id id))))
-                        (recur)))))
+             (when-some [event (<! trigger-ch)]
+               (let [id (get-in event [:data :id])
+                     events-ch (eb/subscribe-by process-id id)]
+                 (log/info "triggering process" event  "id" id)
+                 (process-fn events-ch id)
+                 (async/>! events-ch (update-in event [:metadata] assoc :process-id id)))
+               (recur)))))
 

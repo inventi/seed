@@ -34,17 +34,15 @@
   pom {:project 'my-project
        :version "0.1.0"})
 
-;(def system
-;  "A Var containing an object representing the application under
-;  development."
-;  nil)
+(defn start []
+  (eval `(do
+           (require 'seed.accounts.app)
+           (seed.accounts.app/start))))
 
-;(defn start
-;  "Starts the system running, updates the Var #'system."
-;  []
-;  (let [sys (eval '(do (require 'app-dev) (app-dev/start-dev!)))]
-;    (alter-var-root #'system (constantly sys))))
-
-
+(defn reset []
+  (eval `(do
+           (clojure.core.memoize/memo-clear! seed.core.util/new-empty-event)
+           (mount.core/stop)
+           (mount.core/start))))
 
 

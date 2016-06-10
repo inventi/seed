@@ -22,14 +22,14 @@
            :balance 0))
 
   AccountDebited
-  (state [event state]
+  (state [{:keys [amount] :as event} {:keys [balance] :as state}]
     (assoc state
-           :balance (+ (:balance state) (:amount event))))
+           :balance (+ balance amount )))
 
   AccountCredited
-  (state [event state]
+  (state [{:keys [amount] :as event} {:keys [balance] :as state}]
     (assoc state
-           :balance (- (:balance state) (:amount event)))))
+           :balance (- balance amount))))
 
 
 (defn account-exist? [state]
