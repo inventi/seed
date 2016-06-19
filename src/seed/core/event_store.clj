@@ -5,12 +5,13 @@
            [clojure.data.json :as json]
            [seed.core.util :refer [keywordize-name keywordize-exception]])
   (import [akka.actor ActorSystem]
+          [akka.pattern Patterns]
           [eventstore.tcp ConnectionActor]
           [eventstore SubscriptionObserver]
           [eventstore.j
            SettingsBuilder EsConnectionFactory EventDataBuilder
            WriteEventsBuilder ReadStreamEventsBuilder SubscribeToBuilder]
-          [seed.core.eventstore.j DelegatingActor MsgReceiver]
+          [seed.core.eventstore.j DelegatingActor MsgReceiver DelegatingOnSuccess]
           [java.net InetSocketAddress]))
 
 (defrecord Position [commit prepare])
@@ -36,25 +37,23 @@
 (defstate es-con
   :start (EsConnectionFactory/create actor-system (build-settings (:event-store config))))
 
-
 (defn terminated? [actor]
   (.isTerminated actor))
 
-(defn- new-result-actor [chan]
-  (.actorOf
-    actor-system
-    (DelegatingActor/props (reify
-                             MsgReceiver
-                             (onInit [this actor])
-                             (onReceive [this message]
-                                 (async/put! chan message)
-                                 (close! chan))))))
+(defn msg-receiver [chan]
+  (DelegatingOnSuccess.
+                  (reify MsgReceiver
+                    (onInit [this _])
+                    (onReceive [this msg]
+                      (async/put! chan msg)))))
 
 (defn- send! [action]
   (when (terminated? actor-con)
     (throw (IllegalStateException. "No connection to event store!")))
   (let [chan (chan)]
-    (.tell actor-con action (new-result-actor chan))
+    (doto (Patterns/ask actor-con action 1000)
+      (.onSuccess (msg-receiver chan) (.dispatcher actor-system))
+      (.onFailure (msg-receiver chan) (.dispatcher actor-system)))
     chan))
 
 (defn event->record [{:keys [event-type data metadata] :as event}]
@@ -118,8 +117,8 @@
    (error msg nil))
 
   ([msg expected-version]
-   (when (= (type msg) akka.actor.Status$Failure)
-     (let [{:keys [error] :as cause} (exception->error (.cause msg))]
+   (when (instance? Exception msg)
+     (let [{:keys [error] :as cause} (exception->error msg)]
        (if (= error :wrong-expected-version)
          (assoc cause :expected-version expected-version)
          cause)))))
