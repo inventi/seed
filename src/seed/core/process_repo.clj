@@ -10,7 +10,7 @@
 (defn datasource [config]
   (let  [korma-pool (:datasource
                       (korma.db/connection-pool (korma.db/postgres config)))]
-    (.setCheckoutTimeout korma-pool 2000)
+    (.setCheckoutTimeout korma-pool 20000)
     (.setTestConnectionOnCheckout korma-pool true)
     {:make-pool? false
      :datasource korma-pool}))
