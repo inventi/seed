@@ -31,7 +31,7 @@
              (if (and (= (:error error) :wrong-expected-version)
                       (> 100 retries))
                (do
-                 (log/info "retrying due to wrong version. Retries" retries
+                 (log/debug "retrying due to wrong version. Retries" retries
                            "err:" error)
                  (recur loaded-state (inc retries)))
                result))))

@@ -63,7 +63,7 @@
              (when-some [event (<! trigger-ch)]
                (let [id (get-in event [:data :id])
                      events-ch (eb/subscribe-by process-id id)]
-                 (log/info "triggering process" event  "id" id)
+                 (log/debug "triggering process" event  "id" id)
                  (process-fn events-ch id)
                  (async/>! events-ch (update-in event [:metadata] assoc :process-id id)))
                (recur)))))
