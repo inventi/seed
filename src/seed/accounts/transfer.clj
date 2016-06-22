@@ -22,7 +22,8 @@
          [:transfer-initiated
           :account-credited
           :command-failed (a/$ :reverse-credit)
-          :account-debited (a/$ :fail-transfer)]
+          :account-debited (a/$ :fail-transfer)
+          :transfer-failed]
 
          [:transfer-initiated (a/$ :credit-from-account)
           :account-credited (a/$ :debit-to-account)
@@ -31,13 +32,13 @@
 
 (defn- credit-from-account [{{{:keys [from amount]} :data} :trigger-event :as state} input]
   (->>
-    {:account-number from :amount amount :currency "EUR" :stream-id from}
+    {:number from :amount amount :currency "EUR" :stream-id from}
     account/map->CreditAccount
     (assoc state :command)))
 
 (defn- debit-to-account [{{{:keys [to amount]} :data} :trigger-event :as state} input]
   (->>
-    {:account-number to :amount amount :currency "EUR" :stream-id to}
+    {:number to :amount amount :currency "EUR" :stream-id to}
     account/map->DebitAccount
     (assoc state :command)))
 
