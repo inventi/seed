@@ -1,6 +1,6 @@
 FROM      ubuntu:14.04.2
 
-ENV ES_VERSION 3.6.3
+ENV ES_VERSION 3.9.2
 
 ADD http://download.geteventstore.com/binaries/EventStore-OSS-Ubuntu-14.04-v$ES_VERSION.tar.gz /tmp/
 RUN tar xfz /tmp/EventStore-OSS-Ubuntu-14.04-v$ES_VERSION.tar.gz -C /opt
