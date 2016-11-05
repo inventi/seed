@@ -16,7 +16,7 @@ You need to do few things before you can try this out:
 * Start eventstore and postgress containers, from ``docker`` folder with ``docker-compose up -d``
 * Change config. There is hardoced config in clojure for now, so you have to change your docker host IP manually in ``seed.core.config`` namespace.
 
-Finally you can start the repl with ``boot javac repl``. Note: ``javac`` task needed to complie java classes.
+Finally you can start the repl with ``boot dev``.
 There are few functions available to start with:
 * boot.user/start - starts all services.
 * boot.user/reset - reloads namepsaces, use it if you want to change aggregate/commands functions.

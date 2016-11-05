@@ -26,13 +26,9 @@
                   [ring/ring-json  "0.4.0"]])
 
 (deftask dev []
-  (set-env! :dependencies (into (get-env :dependencies)
-                                '[[ring/whatever "1.2.3"]]))
-  (println (get-env :dependencies)))
-
-(task-options!
-  pom {:project 'my-project
-       :version "0.1.0"})
+  (comp
+    (javac)
+    (repl)))
 
 (defn start []
   (eval `(do
