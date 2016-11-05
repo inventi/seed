@@ -3,7 +3,7 @@
            [seed.core.config :refer [config]]
            [clojure.core.async :as async :refer [chan close! >!! >! <! go go-loop]]
            [clojure.data.json :as json]
-           [seed.core.util :refer [keywordize-name keywordize-exception]])
+           [seed.core.util :refer [keywordize-name keywordize-exception error]])
   (import [akka.actor ActorSystem]
           [akka.pattern Patterns]
           [eventstore.tcp ConnectionActor]
@@ -42,10 +42,10 @@
 
 (defn msg-receiver [chan]
   (DelegatingOnSuccess.
-                  (reify MsgReceiver
-                    (onInit [this _])
-                    (onReceive [this msg]
-                      (async/put! chan msg)))))
+    (reify MsgReceiver
+      (onInit [this _])
+      (onReceive [this msg]
+        (async/put! chan msg)))))
 
 (defn- send! [action]
   (when (terminated? actor-con)
@@ -86,7 +86,7 @@
                      (.. event position commitPosition)
                      (.. event position preparePosition))))
 
-(defn write-stream-msg [stream events version]
+(defn write-stream [stream events version]
   (.build
     (let [builder (WriteEventsBuilder. stream)]
       (if (nil? version)
@@ -96,7 +96,7 @@
         (.addEvent builder (event->record event)))
       builder)))
 
-(defn read-stream-msg [stream from-num]
+(defn read-stream [stream from-num]
   (.build (doto (ReadStreamEventsBuilder. stream)
             (.forward)
             (.fromNumber (eventstore.EventNumber$Exact. (if (nil? from-num) 0 from-num)))
@@ -112,25 +112,26 @@
 (defn- exception->error [e]
   (->EventStoreError (keywordize-exception e) (.getMessage e)))
 
-(defn- error
+(defn- keywordize-error
   ([msg]
-   (error msg nil))
-
-  ([msg expected-version]
    (when (instance? Exception msg)
-     (let [{:keys [error] :as cause} (exception->error msg)]
-       (if (= error :wrong-expected-version)
-         (assoc cause :expected-version expected-version)
-         cause)))))
+     (exception->error msg))))
+
+(defn- with-version [{:keys [error] :as e} expected-version]
+  (if (= error :wrong-expected-version)
+    (assoc e :expected-version expected-version)
+    e))
 
 (defn- write-events-to-stream [events stream expected-version]
   (go
-    [nil
-     (->
-       (write-stream-msg stream events expected-version)
+    (->
+       stream
+       (write-stream events expected-version)
        send!
        <!
-       (error expected-version))]))
+       keywordize-error
+       (with-version expected-version)
+       error)))
 
 (defn stream [stream-ns id]
   (str stream-ns "-" id))
@@ -141,15 +142,15 @@
 
 (defn- read-events-from-stream [stream from-event-num]
   (let [result-chan (-> stream
-                        (read-stream-msg from-event-num)
+                        (read-stream from-event-num)
                         send!)]
-    (async/go
+    (go
       (let [result (async/<! result-chan)
-            err (error result)]
+            err (keywordize-error result)]
         (if err
           (condp = (:error err)
             :stream-not-found [`() nil]
-            [nil err])
+            (error err))
           [(reverse (map record->event (get-records result))) nil])))))
 
 (defn save-events [events stream-id expected-version]
