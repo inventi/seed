@@ -1,11 +1,3 @@
-processrepo:
-  build: ./process-repo
-  ports:
-    - "5432:5432"
-  environment:
-    - POSTGRES_USER=seed
-    - POSTGRES_PASSWORD=seed
-
 eventstore:
   build: ./event-store
   ports:

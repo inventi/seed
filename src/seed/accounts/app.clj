@@ -4,7 +4,6 @@
            [seed.core.event-bus :as event-bus]
            [seed.accounts.transfer :as transfer]
            [seed.core.process :as process]
-           [seed.core.process-repo :as process-repo]
            [seed.accounts.account :as account]
            [seed.accounts.api :as api]
            [ring.middleware.json :refer  [wrap-json-body wrap-json-response]]
