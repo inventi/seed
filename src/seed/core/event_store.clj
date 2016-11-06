@@ -61,8 +61,8 @@
     (doto
       (EventDataBuilder. event-type)
       (.eventId (java.util.UUID/randomUUID))
-      (.data (json/write-str data))
-      (.metadata (json/write-str metadata)))))
+      (.jsonData (json/write-str data))
+      (.jsonMetadata (json/write-str metadata)))))
 
 (defn- as-json [data]
   (json/read
