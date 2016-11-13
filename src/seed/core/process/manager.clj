@@ -1,10 +1,9 @@
-(ns seed.core.manage-process
+(ns seed.core.process.manager
   (require [automat.core :as a]
            [seed.core.command :as command]
            [seed.core.aggregate :as aggregate]
-           [seed.core.event-bus :as eb]
-           [seed.core.util :refer [keywordize-name camel->lisp success new-empty-event]]
-           [clojure.core.async :as async :refer [go <! >! go-loop]]
+           [seed.core.util :refer [camel->lisp success]]
+           [clojure.core.async :as async :refer [<!!]]
            [clojure.tools.logging :as log]))
 
 (defrecord TriggerProcess [])
@@ -34,7 +33,7 @@
   (let [state (next-state (:state state) fsm event)
         cmd (get-in state [:value :command])]
     (if-not (:accepted? state)
-      (let [{:keys [error]} (async/<!!(dispatch-command cmd id))]
+      (let [{:keys [error]} (<!!(dispatch-command cmd id))]
         (if error
           [(map->StepProceeded {:state state})
            (map->CommandFailed {:cause (:error error)})]
@@ -42,7 +41,6 @@
       [(map->ProcessClosed {:state state})])))
 
 (extend-protocol command/CommandHandler
-
   TriggerProcess
   (perform [{:keys [trigger-event fsm id]} state]
     (success
@@ -55,8 +53,7 @@
 
   CloseProcess
   (perform [{:keys [amount currency] :as command}
-            {:keys [balance] :as state}]
-    ))
+            {:keys [balance] :as state}]))
 
 (extend-protocol aggregate/Aggregate
 
