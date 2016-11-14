@@ -1,8 +1,9 @@
 (ns seed.core.aggregate
-  (require [seed.core.event-store :as es]
-           [clojure.core.async :as async :refer [go-loop chan close! >! <! go]]
-           [seed.core.util :refer [camel->lisp get-namespace new-empty-event success error]]
-           [clojure.tools.logging :as log]))
+  (:require [seed.core.event-store :as es]
+            [clojure.core.async :as async :refer [go-loop chan close! >! <! go]]
+            [seed.core.util :refer [camel->lisp get-namespace new-empty-event success error]]
+            [clojure.tools.logging :as log]
+            [clojure.spec :as s]))
 
 (defprotocol Aggregate
     (state  [event state]))
@@ -40,3 +41,4 @@
     (str aggregate-ns "-" id)
     version))
 
+(s/def ::state #(contains? % :state))

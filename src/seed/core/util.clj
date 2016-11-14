@@ -1,5 +1,5 @@
 (ns seed.core.util
-  (require [clojure.string :refer [lower-case]]
+  (:require [clojure.string :refer [lower-case]]
            [clojure.core.memoize :refer [memo]]))
 
 (defn- uppercase? [c]

@@ -10,10 +10,10 @@
 
                   [mount  "0.1.10"]
 
-                  [org.clojure/clojure  "1.8.0"]
+                  [org.clojure/clojure  "1.9.0-alpha14"]
                   [org.clojure/core.async  "0.2.374"]
 
-                  [automat  "0.1.3"]
+                  [automat  "0.2.0"]
                   [com.geteventstore/eventstore-client_2.11 "2.4.0"]
                   [org.clojure/data.json  "0.2.6"]
                   [org.clojure/tools.logging "0.3.1"]

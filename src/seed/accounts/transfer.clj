@@ -1,5 +1,5 @@
 (ns seed.accounts.transfer
-  (require [automat.core :as a]
+  (:require [automat.core :as a]
            [seed.core.process :as process]
            [seed.core.command :as command]
            [seed.core.aggregate :as aggregate]

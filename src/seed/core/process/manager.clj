@@ -1,5 +1,5 @@
 (ns seed.core.process.manager
-  (require [automat.core :as a]
+  (:require [automat.core :as a]
            [seed.core.command :as command]
            [seed.core.aggregate :as aggregate]
            [seed.core.util :refer [camel->lisp success]]

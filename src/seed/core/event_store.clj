@@ -1,18 +1,18 @@
 (ns seed.core.event-store
-  (require [mount.core :refer  [defstate]]
+  (:require [mount.core :refer  [defstate]]
            [seed.core.config :refer [config]]
            [clojure.core.async :as async :refer [chan close! >!! >! <! go go-loop]]
            [clojure.data.json :as json]
            [seed.core.util :refer [keywordize-name keywordize-exception error]])
-  (import [akka.actor ActorSystem]
-          [akka.pattern Patterns]
-          [eventstore.tcp ConnectionActor]
-          [eventstore SubscriptionObserver]
-          [eventstore.j
-           SettingsBuilder EsConnectionFactory EventDataBuilder
-           WriteEventsBuilder ReadStreamEventsBuilder SubscribeToBuilder]
-          [seed.core.eventstore.j DelegatingActor MsgReceiver DelegatingOnSuccess]
-          [java.net InetSocketAddress]))
+  (:import [akka.actor ActorSystem]
+           [akka.pattern Patterns]
+           [eventstore.tcp ConnectionActor]
+           [eventstore SubscriptionObserver]
+           [eventstore.j
+            SettingsBuilder EsConnectionFactory EventDataBuilder
+            WriteEventsBuilder ReadStreamEventsBuilder SubscribeToBuilder]
+           [seed.core.eventstore.j DelegatingActor MsgReceiver DelegatingOnSuccess]
+           [java.net InetSocketAddress]))
 
 (defrecord Position [commit prepare])
 

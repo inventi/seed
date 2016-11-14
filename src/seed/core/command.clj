@@ -1,5 +1,5 @@
 (ns seed.core.command
-  (require [seed.core.aggregate :as aggregate]
+  (:require [seed.core.aggregate :as aggregate]
            [clojure.core.async :as async :refer [go-loop chan close! >! <! go]]
            [seed.core.util :refer [camel->lisp get-namespace new-empty-event success error]]
            [clojure.tools.logging :as log]))

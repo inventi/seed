@@ -1,8 +1,8 @@
 (ns seed.accounts.account
-  (require [automat.core :as a]
-           [seed.core.command :as command :refer [cmd-error]]
-           [seed.core.aggregate :as aggregate]
-           [seed.core.util :refer [success]]))
+  (:require [automat.core :as a]
+            [seed.core.command :as command :refer [cmd-error]]
+            [seed.core.aggregate :as aggregate]
+            [seed.core.util :refer [success]]))
 
 (defrecord OpenAccount [number currency applicant holder])
 (defrecord DebitAccount  [number amount currency])

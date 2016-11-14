@@ -1,5 +1,5 @@
 (ns seed.core.event-bus
-  (require [mount.core :refer  [defstate]]
+  (:require [mount.core :refer  [defstate]]
            [clojure.core.async :as async :refer [chan mult]]
            [seed.core.event-store :as es]))
 

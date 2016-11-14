@@ -1,10 +1,10 @@
 (ns seed.core.process
-  (require [automat.core :as a]
-           [seed.core.command :as command]
-           [seed.core.process.manager :refer [map->TriggerProcess map->StepProcess]]
-           [seed.core.event-bus :as eb]
-           [clojure.core.async :as async :refer [go <! >! go-loop]]
-           [clojure.tools.logging :as log]))
+  (:require [automat.core :as a]
+            [seed.core.command :as command]
+            [seed.core.process.manager :refer [map->TriggerProcess map->StepProcess]]
+            [seed.core.event-bus :as eb]
+            [clojure.core.async :as async :refer [go <! >! go-loop]]
+            [clojure.tools.logging :as log]))
 
 (defn- dispatch-command [{:keys [stream-id] :as cmd}]
   (go
