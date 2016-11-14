@@ -16,7 +16,7 @@
 (defrecord ProcessClosed [])
 
 (defn- dispatch-command [cmd process-id]
-  (command/handle-cmd {} (:stream-id cmd) cmd {:process-id process-id}))
+  (command/handle-cmd {} cmd {:process-id process-id}))
 
 (defn- with-event [state event]
   (if (:value state)

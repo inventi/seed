@@ -16,14 +16,14 @@
 
 (defn load-state! [init-state id aggregate-ns]
   (go-loop [state init-state
-            version (:version init-state)]
+            version (::version init-state)]
            (let [stream (str aggregate-ns "-" id)
                  event-num (if (nil? version) 0 (inc version))
                  [events err :as result] (<!(es/load-events stream event-num))]
              (if err
                result
                (if (empty? events)
-                 (success (assoc state :version version))
+                 (success (assoc state ::version version))
                  (recur
                    (->> (map (partial es-event->event aggregate-ns) events)
                         (current-state state))
@@ -41,4 +41,7 @@
     (str aggregate-ns "-" id)
     version))
 
-(s/def ::state #(contains? % :state))
+
+(s/def ::version number?)
+(s/def ::valid-state (s/keys :req [::version]))
+

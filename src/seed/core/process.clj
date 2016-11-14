@@ -6,10 +6,10 @@
             [clojure.core.async :as async :refer [go <! >! go-loop]]
             [clojure.tools.logging :as log]))
 
-(defn- dispatch-command [{:keys [stream-id] :as cmd}]
+(defn- dispatch-command [{:keys [::command/stream-id] :as cmd}]
   (go
     (let [{:keys [error]}
-          (<!(command/handle-cmd {} stream-id cmd {:process-id stream-id}))]
+          (<!(command/handle-cmd {} cmd {:process-id stream-id}))]
       (when error (log/error "Failed to send command to the process" cmd error)))))
 
 (defn- fsm-event-loop
@@ -19,7 +19,7 @@
   [fsm events-ch id trigger]
   (async/<!!
     (dispatch-command
-      (map->TriggerProcess {:id id :fsm fsm :stream-id id :trigger-event trigger})))
+      (map->TriggerProcess {:id id :fsm fsm ::command/stream-id id :trigger-event trigger})))
   (go-loop
     []
     (when-some [event (<! events-ch)]
@@ -29,7 +29,7 @@
         "ProcessClosed" (async/close! events-ch)
         (do
           (<!(dispatch-command
-               (map->StepProcess {:id id :fsm fsm :event event :stream-id id})))
+               (map->StepProcess {:id id :fsm fsm :event event ::command/stream-id id})))
           (recur))))))
 
 (defn fsm-loop [fsm-pattern fsm-reducers]

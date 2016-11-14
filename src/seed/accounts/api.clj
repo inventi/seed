@@ -26,7 +26,8 @@
 
 (defn transfer-money [from to amount]
   (let [id (str (java.util.UUID/randomUUID))]
-    (command/handle-cmd id (transfer/->InitiateTransfer id from to amount))
+    (command/handle-cmd (assoc (transfer/->InitiateTransfer id from to amount)
+                               ::command/stream-id id))
     id))
 
 (defroutes routes

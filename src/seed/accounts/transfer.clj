@@ -32,19 +32,19 @@
 
 (defn- credit-from-account [{{{:keys [from amount]} :data} :trigger-event :as state} input]
   (->>
-    {:number from :amount amount :currency "EUR" :stream-id from}
+    {:number from :amount amount :currency "EUR" ::command/stream-id from}
     account/map->CreditAccount
     (assoc state :command)))
 
 (defn- debit-to-account [{{{:keys [to amount]} :data} :trigger-event :as state} input]
   (->>
-    {:number to :amount amount :currency "EUR" :stream-id to}
+    {:number to :amount amount :currency "EUR" ::command/stream-id to}
     account/map->DebitAccount
     (assoc state :command)))
 
 (defn- complete-transfer [{{{:keys [process-id]} :metadata} :trigger-event :as state} input]
   (->>
-    {:process-id process-id :stream-id process-id}
+    {:process-id process-id ::command/stream-id process-id}
     map->CompleteTransfer
     (assoc state :command)))
 
@@ -52,7 +52,7 @@
                         {:keys [cause]} :data :as event} :event
                        :as state} input]
   (->>
-    {:process-id process-id :stream-id process-id :cause cause}
+    {:process-id process-id ::command/stream-id process-id :cause cause}
     map->FailTransfer
     (assoc state :command)))
 
@@ -82,7 +82,7 @@
 (extend-protocol command/CommandHandler
   InitiateTransfer
   (perform [command state]
-   (success [(apply ->TransferInitiated (vals command))]))
+   (success [(map->TransferInitiated command)]))
 
   CompleteTransfer
   (perform [command state]
