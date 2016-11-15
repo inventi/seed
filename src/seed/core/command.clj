@@ -3,7 +3,8 @@
            [clojure.core.async :as async :refer [go-loop chan close! >! <! go]]
            [seed.core.util :refer [camel->lisp get-namespace new-empty-event success error]]
            [clojure.tools.logging :as log]
-           [clojure.spec :as s]))
+           [clojure.spec :as s]
+           [clojure.spec.test :as stest]))
 
 (defrecord CommandError [error])
 
@@ -50,4 +51,12 @@
    (run-cmd-with-retry init-state command metadata)))
 
 (s/def ::stream-id string?)
-(s/def ::valid-command (s/keys :req [::stream-id]))
+(s/def ::command (s/keys :req [::stream-id]))
+
+(s/fdef handle-cmd
+        :args (s/cat :state (s/? map?)
+                     :cmd ::command
+                     :meta (s/? map?)))
+
+(stest/instrument `handle-cmd)
+

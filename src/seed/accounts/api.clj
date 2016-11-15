@@ -10,7 +10,8 @@
 
 (defn openaccount! [party]
   (let [number (str (java.util.UUID/randomUUID))]
-    (<!! (command/handle-cmd number (account/->OpenAccount number "EUR" party party)))
+    (<!! (command/handle-cmd (assoc (account/->OpenAccount number "EUR" party party)
+                                    ::command/stream-id number)))
     number))
 
 (defn state [id stream-ns]
@@ -52,5 +53,6 @@
 (defn test-accounts []
   (let [acc1 (openaccount! "g1")
         acc2 (openaccount! "g2")]
-    (command/handle-cmd acc1 (account/->DebitAccount acc1 800 "EUR"))
+    (command/handle-cmd (assoc (account/->DebitAccount acc1 800 "EUR")
+                               ::command/stream-id acc1))
     [acc1 acc2]))
