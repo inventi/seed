@@ -2,7 +2,7 @@
   (:require [automat.core :as a]
            [seed.core.command :as command]
            [seed.core.aggregate :as aggregate]
-           [seed.core.util :refer [camel->lisp success]]
+           [seed.core.util :refer [camel->lisp success lispy-name]]
            [clojure.core.async :as async :refer [<!!]]
            [clojure.tools.logging :as log]))
 
@@ -29,11 +29,15 @@
 (defn- next-state [state machine event]
   (a/advance machine (with-event state event) (input event)))
 
+(defn- with-cmd-type [state cmd]
+  (update-in state [:value :command] assoc :type (lispy-name cmd)))
+
 (defn step-process [state fsm id {:keys [metadata] :as event}]
   (let [state (next-state (:state state) fsm event)
         cmd (get-in state [:value :command])]
     (if-not (:accepted? state)
-      (let [{:keys [error]} (<!!(dispatch-command cmd id))]
+      (let [{:keys [::command/error]} (<!!(dispatch-command cmd id))
+            state (with-cmd-type state cmd)]
         (if error
           [(map->StepProceeded {:state state})
            (map->CommandFailed {:cause (:error error)})]
@@ -63,7 +67,8 @@
 
   StepProceeded
   (state [event state]
-    (assoc state :state (:state event)))
+    (assoc state :state
+           (update-in (:state event) [:value] dissoc :command)))
 
   ProcessClosed
   (state [event state]

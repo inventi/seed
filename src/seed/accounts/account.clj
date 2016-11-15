@@ -9,8 +9,8 @@
 (defrecord CreditAccount [number amount currency])
 
 (defrecord AccountOpened [number currency applicant holder])
-(defrecord AccountCredited [amount currency])
-(defrecord AccountDebited [amount currency])
+(defrecord AccountCredited [amount currency cause])
+(defrecord AccountDebited [amount currency cause])
 
 (extend-protocol aggregate/Aggregate
 
@@ -41,17 +41,17 @@
     (success [(map->AccountOpened command)]))
 
   DebitAccount
-  (perform [{:keys [amount currency]} state]
+  (perform [{:keys [amount currency cause] :as command} state]
     (if-not (account-exist? state)
       (cmd-error :account-doesnt-exist)
-      (success [(->AccountDebited amount currency)])))
+      (success [(->AccountDebited amount currency cause)])))
 
   CreditAccount
-  (perform [{:keys [amount currency] :as command}
+  (perform [{:keys [amount currency cause] :as command}
             {:keys [balance] :as state}]
     (if-not (account-exist? state)
       (cmd-error :account-doesnt-exist)
       (if (< (- balance amount) 0)
         (cmd-error :insuficient-balance)
-        (success [(->AccountCredited amount currency)])))))
+        (success [(->AccountCredited amount currency cause)])))))
 

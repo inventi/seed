@@ -42,6 +42,13 @@
     account/map->DebitAccount
     (assoc state :command)))
 
+(defn- reverse-credit [{{{:keys [from amount]} :data} :trigger-event
+                        {{:keys [cause]} :data} :event :as state} input]
+  (->>
+    {:number from :amount amount :currency "EUR" ::command/stream-id from :cause cause}
+    account/map->DebitAccount
+    (assoc state :command)))
+
 (defn- complete-transfer [{{{:keys [process-id]} :metadata} :trigger-event :as state} input]
   (->>
     {:process-id process-id ::command/stream-id process-id}
@@ -60,6 +67,7 @@
   {:credit-from-account credit-from-account
    :debit-to-account debit-to-account
    :complete-transfer complete-transfer
+   :reverse-credit reverse-credit
    :fail-transfer fail-transfer})
 
 (extend-protocol aggregate/Aggregate
