@@ -19,7 +19,9 @@
             version (::version init-state)]
            (let [stream (str aggregate-ns "-" id)
                  event-num (if (nil? version) 0 (inc version))
-                 [events err :as result] (<!(es/load-events stream event-num))]
+                 [events err :as result] (try
+                                           (<!(es/load-events stream event-num))
+                                           (catch java.lang.IllegalStateException e (error e)))]
              (if err
                result
                (if (empty? events)

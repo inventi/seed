@@ -49,9 +49,9 @@
     account/map->DebitAccount
     (assoc state :command)))
 
-(defn- complete-transfer [{{{:keys [process-id]} :metadata} :trigger-event :as state} input]
+(defn- complete-transfer [{{{:keys [id]} :data} :trigger-event :as state} input]
   (->>
-    {:process-id process-id ::command/stream-id process-id}
+    {:process-id id ::command/stream-id id}
     map->CompleteTransfer
     (assoc state :command)))
 
