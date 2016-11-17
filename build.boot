@@ -2,7 +2,7 @@
   (:require [boot.core :refer :all]))
 
 (set-env!
-  :source-paths #{"src"}
+  :source-paths #{"src" "test"}
   :target-path "target"
 
   :dependencies '[[me.raynes/conch "0.8.0"]
