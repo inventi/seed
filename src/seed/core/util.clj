@@ -1,5 +1,5 @@
 (ns seed.core.util
-  (:require [clojure.string :refer [lower-case]]
+  (:require [clojure.string :as st :refer [lower-case]]
            [clojure.core.memoize :refer [memo]]))
 
 (defn- uppercase? [c]
@@ -49,9 +49,10 @@
 (def new-empty-event
   (memo
     (fn [event-type]
-      (when-let [event-class ^Class (resolve (symbol event-type))]
-        (eval `(new ~(symbol event-type)
-                    ~@(ctor-args event-class)))))))
+      (let [cls-name (st/replace event-type #"-" "_")]
+        (when-let [event-class ^Class (resolve (symbol cls-name))]
+          (eval `(new ~(symbol cls-name)
+                      ~@(ctor-args event-class))))))))
 
 (defn error [e]
   [nil e])
