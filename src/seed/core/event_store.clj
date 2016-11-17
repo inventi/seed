@@ -48,8 +48,6 @@
         (async/put! chan msg)))))
 
 (defn- send! [action]
-  (when (terminated? actor-con)
-    (throw (IllegalStateException. "No connection to event store!")))
   (let [chan (chan)]
     (doto (Patterns/ask actor-con action 1000)
       (.onSuccess (msg-receiver chan) (.dispatcher actor-system))
@@ -141,17 +139,19 @@
     (.eventsJava result)))
 
 (defn- read-events-from-stream [stream from-event-num]
-  (let [result-chan (-> stream
-                        (read-stream from-event-num)
-                        send!)]
-    (go
-      (let [result (async/<! result-chan)
-            err (keywordize-error result)]
-        (if err
-          (condp = (:error err)
-            :stream-not-found [`() nil]
-            (error err))
-          [(reverse (map record->event (get-records result))) nil])))))
+  (go
+    (if (terminated? actor-con)
+      (error {:cause "No connection to event store!"})
+      (let [result-chan (-> stream
+                            (read-stream from-event-num)
+                            send!)]
+        (let [result (async/<! result-chan)
+              err (keywordize-error result)]
+          (if err
+            (condp = (:error err)
+              :stream-not-found [`() nil]
+              (error err))
+            [(reverse (map record->event (get-records result))) nil]))))))
 
 (defn save-events [events stream-id expected-version]
   (write-events-to-stream events stream-id expected-version))
