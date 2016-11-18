@@ -2,7 +2,8 @@
   (:require [clojure.core.async :refer [go <!!]]
             [seed.core.util :refer [success error]]
             [seed.core.event-store :as es]
-            [seed.core.aggregate :as aggregate])
+            [seed.core.aggregate :as aggregate]
+            [seed.core.command :as command])
   (:use [seed.core.command]
         [clojure.test]))
 
@@ -33,31 +34,31 @@
     [nil (es/->EventStoreError :some-error "some error")]))
 
 (deftest test-run-command
-  (is (= {::events [(->SuccessHappened)]
-          ::loaded-state {:status :success2 :version 3}
-          ::error nil}
+  (is (= {::command/events [(->SuccessHappened)]
+          ::command/loaded-state {:status :success2 :version 3}
+          ::command/error nil}
          (with-redefs [aggregate/load-state! success-state
                        aggregate/save-events! save-events-with-success]
            (<!! (run-cmd {} (->DoSuccess) {})))))
 
   (testing "should return event store error if load fails"
-    (is (= {::events nil
-            ::loaded-state nil
-            ::error (es/->EventStoreError :some-error  "some error") }
+    (is (= {::command/events nil
+            ::command/loaded-state nil
+            ::command/error (es/->EventStoreError :some-error  "some error") }
            (with-redefs [aggregate/load-state! error-state]
              (<!! (run-cmd {} (->DoSuccess) {}))))))
 
   (testing "should return state and command error if command fails"
-    (is (= {::events nil
-            ::loaded-state {:status :success2 :version 3}
-            ::error (->CommandError "command went wrong")}
+    (is (= {::command/events nil
+            ::command/loaded-state {:status :success2 :version 3}
+            ::command/error (->CommandError "command went wrong")}
            (with-redefs [aggregate/load-state! success-state]
              (<!! (run-cmd {} (->DoError) {}))))))
 
   (testing "should return state, events and write error if write fails"
-    (is (= {::events [(->SuccessHappened)]
-            ::loaded-state {:status :success2 :version 3}
-            ::error (es/->EventStoreError :wrong-expected-version  "")}
+    (is (= {::command/events [(->SuccessHappened)]
+            ::command/loaded-state {:status :success2 :version 3}
+            ::command/error (es/->EventStoreError :wrong-expected-version  "")}
            (with-redefs [aggregate/load-state! success-state
                          aggregate/save-events! save-events-with-wrong-version]
              (<!! (run-cmd {} (->DoSuccess) {})))))))

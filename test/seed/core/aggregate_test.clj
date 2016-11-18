@@ -33,11 +33,6 @@
   (go
     [nil (es/->EventStoreError :some-error "some error")]))
 
-
-(defn wtf []
-  (with-redefs [es/load-events load-events-in-batches]
-    (load-state! {} "stream-id" *ns*)))
-
 (deftest test-current-state
   (testing "should apply all events"
     (is (= {:status :success2}
