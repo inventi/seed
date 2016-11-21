@@ -3,13 +3,14 @@
             [seed.core.command :as command]
             [seed.core.process.manager :refer [map->TriggerProcess map->StepProcess]]
             [seed.core.event-bus :as eb]
+            [seed.core.event-store :as es]
             [clojure.core.async :as async :refer [go <! >! go-loop]]
             [clojure.tools.logging :as log]))
 
 (defn- loop-fsm [fsm events-ch id]
   (go-loop []
            (when-some [event (<! events-ch)]
-             (condp = (:event-type event)
+             (condp = (::es/event-type event)
                "ProcessStarted" (recur)
                "StepProceeded" (recur)
                "ProcessClosed" (async/close! events-ch)
@@ -39,14 +40,14 @@
     (partial run-event-loop fsm)))
 
 (defn process-id [e]
-  (get-in e [:metadata :process-id]))
+  (get-in e [::es/metadata :process-id]))
 
 (defn trigger [process-fn event-class]
   (let [trigger-ch (eb/subscribe-by
-                     :event-type (.getSimpleName event-class))]
+                     ::es/event-type (.getSimpleName event-class))]
     (go-loop []
              (when-some [event (<! trigger-ch)]
-               (let [id (get-in event [:data :id])
+               (let [id (get-in event [::es/data :id])
                      events-ch (eb/subscribe-by process-id id)]
                  (log/debug "triggering process" event "id" id)
                  (process-fn events-ch id event))

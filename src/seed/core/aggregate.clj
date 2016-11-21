@@ -11,7 +11,7 @@
 (defn current-state [init-state events]
   (reduce #(state %2 %1) init-state (reverse events)))
 
-(defn es-event->event [event-ns {:keys [event-type data]}]
+(defn es-event->event [event-ns {:keys [::es/event-type ::es/data]}]
   (into (new-empty-event (str event-ns "." event-type)) data))
 
 (defn load-state! [init-state id aggregate-ns]
@@ -27,13 +27,13 @@
                  (recur
                    (->> (map (partial es-event->event aggregate-ns) events)
                         (current-state state))
-                   (:event-number (first events))))))))
+                   (::es/number (first events))))))))
 
 (defn event->es-event [metadata event]
   (es/map->Event
-    {:data (into {} event)
-     :event-type (.getSimpleName (type event))
-     :metadata metadata}))
+    {::es/data (into {} event)
+     ::es/event-type (.getSimpleName (type event))
+     ::es/metadata metadata}))
 
 (defn save-events! [events metadata version id aggregate-ns]
   (es/save-events
@@ -41,7 +41,5 @@
     (str aggregate-ns "-" id)
     version))
 
-
 (s/def ::version number?)
 (s/def ::valid-state (s/keys :req [::version]))
-

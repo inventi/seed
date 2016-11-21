@@ -3,7 +3,8 @@
            [seed.core.config :refer [config]]
            [clojure.core.async :as async :refer [chan close! >!! >! <! go go-loop]]
            [clojure.data.json :as json]
-           [seed.core.util :refer [keywordize-name keywordize-exception error]])
+           [seed.core.util :refer [keywordize-name keywordize-exception error]]
+           [clojure.spec :as s])
   (:import [akka.actor ActorSystem]
            [akka.pattern Patterns]
            [eventstore.tcp ConnectionActor]
@@ -54,7 +55,7 @@
       (.onFailure (msg-receiver chan) (.dispatcher actor-system)))
     chan))
 
-(defn event->record [{:keys [event-type data metadata] :as event}]
+(defn event->record [{:keys [::event-type ::data ::metadata] :as event}]
   (.build
     (doto
       (EventDataBuilder. event-type)
@@ -69,18 +70,18 @@
         (.. data value toArray)))
     :key-fn keyword))
 
-(defrecord Event [event-type data metadata event-number])
+(defrecord Event [])
 
 (defn record->event [record]
   (map->Event
-    {:event-type (.. record data eventType)
-     :data (as-json (.. record data data))
-     :metadata (as-json (.. record data metadata))
-     :event-number (.. record number value)}))
+    {::event-type (.. record data eventType)
+     ::data (as-json (.. record data data))
+     ::metadata (as-json (.. record data metadata))
+     ::number (.. record number value)}))
 
 (defn indexed->event [event]
   (assoc (record->event (.event event))
-         :position (->Position
+         ::position (->Position
                      (.. event position commitPosition)
                      (.. event position preparePosition))))
 
@@ -179,3 +180,9 @@
         (onClose [this]
           (close! events-chan))) false nil)
     events-chan))
+
+(s/def ::event-type string?)
+(s/def ::data map?)
+(s/def ::metadata map?)
+(s/def ::event (s/keys :req [::event-type ::data ::metadata]))
+

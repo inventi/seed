@@ -2,9 +2,12 @@
   (:require [automat.core :as a]
            [seed.core.command :as command]
            [seed.core.aggregate :as aggregate]
+           [seed.core.event-store :as es]
            [seed.core.util :refer [camel->lisp success lispy-name]]
            [clojure.core.async :as async :refer [<!!]]
-           [clojure.tools.logging :as log]))
+           [clojure.tools.logging :as log]
+           [clojure.spec :as s]
+           [clojure.spec.test :as stest]))
 
 (defrecord TriggerProcess [])
 (defrecord StepProcess [])
@@ -15,16 +18,19 @@
 (defrecord StepProceeded [])
 (defrecord ProcessClosed [])
 
-(defn- dispatch-command [cmd process-id]
-  (command/handle-cmd {} cmd {:process-id process-id}))
+(defn drop-ns [m]
+  (zipmap
+    (map #(-> % name keyword) (keys m))
+    (vals m)))
 
 (defn- with-event [state event]
-  (if (:value state)
-    (update-in state [:value] assoc :event event)
-    (assoc state :trigger-event event :event event)))
+  (let [event (drop-ns event)]
+    (if (:value state)
+      (update-in state [:value] assoc :event event)
+      (assoc state :trigger-event event :event event))))
 
-(defn- input [event]
-  (keyword (camel->lisp (:event-type event))))
+(defn- input [{:keys [::es/event-type]}]
+  (keyword (camel->lisp event-type)))
 
 (defn- next-state [state machine event]
   (a/advance machine (with-event state event) (input event)))
@@ -32,11 +38,11 @@
 (defn- with-cmd-type [state cmd]
   (update-in state [:value :command] assoc :type (lispy-name cmd)))
 
-(defn step-process [state fsm id {:keys [metadata] :as event}]
+(defn step-process [state fsm id event]
   (let [state (next-state (:state state) fsm event)
         cmd (get-in state [:value :command])]
     (if-not (:accepted? state)
-      (let [{:keys [::command/error]} (<!!(dispatch-command cmd id))
+      (let [{:keys [::command/error]} (<!! (command/handle-cmd {} cmd {:process-id id}))
             state (with-cmd-type state cmd)]
         (if error
           [(map->StepProceeded {:state state})
@@ -77,3 +83,11 @@
   CommandFailed
   (state [event state]
     state))
+
+(s/fdef step-process
+        :args (s/cat :state map?
+                     :fsm some?
+                     :id string?
+                     :event ::es/event))
+
+(stest/instrument `step-process)
