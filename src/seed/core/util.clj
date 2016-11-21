@@ -14,10 +14,11 @@
   (lower-case (reduce lispify string)))
 
 (defn lispy-name [o]
-  (-> o
-      type
-      .getSimpleName
-      camel->lisp))
+  (when o
+    (-> o
+        type
+        .getSimpleName
+        camel->lisp)))
 
 (defn keywordize-name [o]
   (keyword (lispy-name o)))
