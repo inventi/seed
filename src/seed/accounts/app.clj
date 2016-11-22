@@ -15,6 +15,10 @@
       wrap-json-response
       (wrap-json-body {:keywords? true})))
 
+(defstate server
+  :start (web/run handler)
+  :stop (web/stop))
+
 (defstate accounts
   :start (process/trigger
            (process/fsm-loop transfer/pattern transfer/reducers)

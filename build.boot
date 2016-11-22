@@ -39,4 +39,11 @@
            (mount.core/stop)
            (mount.core/start))))
 
+(deftask run []
+  (comp
+    (javac)
+    (with-pre-wrap fileset
+      (start)
+      fileset)
+    (wait)))
 
