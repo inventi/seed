@@ -4,4 +4,5 @@
   {:event-store {:host "localhost"
                  :port 1113
                  :user "admin"
-                 :password "changeit"}})
+                 :password "changeit"}
+   :web {:port 8081 :host "0.0.0.0"}})
