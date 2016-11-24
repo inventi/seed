@@ -1,0 +1,14 @@
+version: '2'
+services:
+  eventstore:
+    image: zhilvis/event-store
+    ports:
+      - "2113:2113"
+      - "1113:1113"
+
+  seed:
+    image: zhilvis/seed
+    depends_on:
+      - eventstore
+    ports:
+      - "8081:8081"

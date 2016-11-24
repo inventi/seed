@@ -15,4 +15,5 @@ ADD build.boot /home/seed/
 RUN cd /home/seed && boot javac
 ADD src /home/seed/src
 WORKDIR /home/seed
+EXPOSE 8081
 CMD ["boot","run"]
