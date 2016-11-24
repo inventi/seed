@@ -33,20 +33,16 @@
 
 (defroutes routes
   (context "/accounts" request
-           (POST "/" { {:keys [currency holder]} :body
-                       accounts :accounts}
-                 (response (assoc {} :number (openaccount! holder accounts))))
+           (POST "/" {{:keys [holder]} :body}
+                 (response (assoc {} :number (openaccount! holder))))
 
-           (GET "/:id" {{:keys [id]} :params
-                        accounts :accounts}
-                (response (account-state id accounts))))
+           (GET "/:id" {{:keys [id]} :params}
+                (response (account-state id))))
   (context "/transfers" request
-           (POST "/" {{:keys [from to amount]} :body
-                      accounts :accounts}
-                 (response (assoc {} :id (transfer-money from to amount accounts))))
-           (GET "/:id" {{:keys [id]} :params
-                        accounts :accounts}
-                (response (transfer-state id accounts))))
+           (POST "/" {{:keys [from to amount]} :body}
+                 (response (assoc {} :id (transfer-money from to amount))))
+           (GET "/:id" {{:keys [id]} :params}
+                (response (transfer-state id))))
 
   (route/not-found  "<h1>Page not found</h1>"))
 
