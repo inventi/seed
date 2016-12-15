@@ -11,7 +11,7 @@
 (defrecord MyCmd [])
 
 (defn er-cmd [& args]
-  (go {::command/error "simple error"}))
+  (go {::command/error {:error "just error"}}))
 
 (defn ok-cmd [& args]
   (go {}))
@@ -81,7 +81,7 @@
                 {:trigger-event (serialized-event "a")
                  :event (serialized-event "c")}))})))
 
-(deftest test-manager
+(deftest test-success
   (with-redefs [command/handle-cmd ok-cmd]
     (testing "should start the process"
       (is
@@ -100,4 +100,19 @@
              (perform (map->StepProcess
                         {:id "id" :fsm fsm :event (event "c")})
                       (apply with-state (concat b-events c-events))))))))
+
+(deftest test-errors
+  (with-redefs [command/handle-cmd er-cmd]
+    (testing "should report command error on trigger"
+      (is (= (success (conj a-events
+                            (map->CommandFailed {:cause "just error"})))
+             (perform (map->TriggerProcess
+                        {:id "id" :fsm fsm :trigger-event (event "a")}) {}))))
+
+    (testing "should report command error on step"
+      (is (= (success (conj b-events
+                            (map->CommandFailed {:cause "just error"})))
+             (perform (map->StepProcess
+                        {:id "id" :fsm fsm :event (event "b")})
+                      (apply with-state a-events)))))))
 
