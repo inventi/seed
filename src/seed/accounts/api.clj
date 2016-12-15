@@ -8,11 +8,17 @@
             [seed.accounts.transfer :as transfer]
             [ring.util.response :refer  [response]]))
 
-(defn openaccount! [party]
-  (let [number (str (java.util.UUID/randomUUID))]
-    (<!! (command/handle-cmd (assoc (account/->OpenAccount number "EUR" party party)
-                                    ::command/stream-id number)))
-    number))
+(defn openaccount!
+  ([party]
+   (openaccount! party nil))
+
+  ([party limit]
+   (let [number (str (java.util.UUID/randomUUID))]
+     (<!! (command/handle-cmd
+            (assoc
+              (account/->OpenAccount number "EUR" party party limit)
+              ::command/stream-id number)))
+     number)))
 
 (defn state [id stream-ns]
   (let [[state err]
@@ -48,7 +54,7 @@
 
 (defn test-accounts []
   (let [acc1 (openaccount! "g1")
-        acc2 (openaccount! "g2")]
+        acc2 (openaccount! "g2" 500)]
     (command/handle-cmd (assoc (account/->DebitAccount acc1 800 "EUR")
                                ::command/stream-id acc1))
     [acc1 acc2]))

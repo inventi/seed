@@ -4,7 +4,7 @@
             [seed.core.aggregate :as aggregate]
             [seed.core.util :refer [success]]))
 
-(defrecord OpenAccount [number currency applicant holder])
+(defrecord OpenAccount [number currency applicant holder limit])
 (defrecord DebitAccount  [number amount currency])
 (defrecord CreditAccount [number amount currency])
 
@@ -19,6 +19,7 @@
     (assoc state
            :state :created
            :number (:number event)
+           :limit (:limit event)
            :balance 0))
 
   AccountDebited
@@ -41,10 +42,15 @@
     (success [(map->AccountOpened command)]))
 
   DebitAccount
-  (perform [{:keys [amount currency cause] :as command} state]
+  (perform [{:keys [amount currency cause] :as command}
+            {:keys [balance limit] :as state}]
     (if-not (account-exist? state)
       (cmd-error :account-doesnt-exist)
-      (success [(->AccountDebited amount currency cause)])))
+      (if (and
+            (some? limit)
+            (> (+ balance amount) limit))
+        (cmd-error :allowed-limit-exceeded)
+        (success [(->AccountDebited amount currency cause)]))))
 
   CreditAccount
   (perform [{:keys [amount currency cause] :as command}
