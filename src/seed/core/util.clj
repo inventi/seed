@@ -13,15 +13,15 @@
 (defn camel->lisp [string]
   (lower-case (reduce lispify string)))
 
-(defn lispy-name [o]
+(defn keywordize [st]
+  (keyword (camel->lisp st)))
+
+(defn keywordize-name [o]
   (when o
     (-> o
         type
         .getSimpleName
-        camel->lisp)))
-
-(defn keywordize-name [o]
-  (keyword (lispy-name o)))
+        keywordize)))
 
 (defn keywordize-exception [e]
   (->>

@@ -4,16 +4,17 @@
             [seed.core.process.manager :refer [map->TriggerProcess map->StepProcess]]
             [seed.core.event-bus :as eb]
             [seed.core.event-store :as es]
+            [seed.core.util :refer [keywordize]]
             [clojure.core.async :as async :refer [go <! >! go-loop]]
             [clojure.tools.logging :as log]))
 
 (defn- loop-fsm [fsm events-ch id]
   (go-loop []
            (when-some [event (<! events-ch)]
-             (condp = (::es/event-type event)
-               "ProcessStarted" (recur)
-               "StepProceeded" (recur)
-               "ProcessClosed" (async/close! events-ch)
+             (condp = (keywordize (::es/event-type event))
+               :process-started (recur)
+               :step-proceeded (recur)
+               :process-closed (async/close! events-ch)
                (let [cmd (map->StepProcess {:id id :fsm fsm :event event ::command/stream-id id})
                      {:keys [::command/error] :as r} (<! (command/handle-cmd {} cmd {:process-id id}))]
                  (if error

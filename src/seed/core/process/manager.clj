@@ -3,7 +3,7 @@
            [seed.core.command :as command]
            [seed.core.aggregate :as aggregate]
            [seed.core.event-store :as es]
-           [seed.core.util :refer [camel->lisp success lispy-name]]
+           [seed.core.util :refer [camel->lisp success keywordize-name]]
            [clojure.core.async :as async :refer [<!!]]
            [clojure.tools.logging :as log]
            [clojure.spec :as s]
@@ -36,7 +36,7 @@
   (a/advance machine (with-event state event) (input event)))
 
 (defn- with-cmd-type [state cmd]
-  (update-in state [:value :command] assoc :type (lispy-name cmd)))
+  (update-in state [:value :command] assoc :type (keywordize-name cmd)))
 
 (defn step-process [state fsm id event]
   (let [state (next-state (:state state) fsm event)
