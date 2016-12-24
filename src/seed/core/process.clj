@@ -43,14 +43,18 @@
 (defn process-id [e]
   (get-in e [::es/metadata :process-id]))
 
-(defn trigger [process-fn event-class]
+(defn trigger [start-process-fn trigger-event-class]
   (let [trigger-ch (eb/subscribe-by
-                     ::es/event-type (.getSimpleName event-class))]
+                     ::es/event-type (.getSimpleName trigger-event-class))]
     (go-loop []
              (when-some [event (<! trigger-ch)]
                (let [id (get-in event [::es/data :id])
                      events-ch (eb/subscribe-by process-id id)]
                  (log/debug "triggering process" event "id" id)
-                 (process-fn events-ch id event))
+                 (if-let [process (start-process-fn events-ch id event)]
+                   (do
+                     (log/info "process started" id)
+                     (log/info "process ended" id (<! process)))
+                   (log/error "failed to start process with event" event "id" id)))
                (recur)))))
 
