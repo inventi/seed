@@ -55,13 +55,18 @@
       (.onFailure (msg-receiver chan) (.dispatcher actor-system)))
     chan))
 
-(defn event->record [{:keys [::event-type ::data ::metadata] :as event}]
+
+(defn event->record [{:keys [::event-type ::data ::metadata ::correlation-id ::causation-id] :as event}]
   (.build
     (doto
       (EventDataBuilder. event-type)
       (.eventId (java.util.UUID/randomUUID))
       (.jsonData (json/write-str data))
-      (.jsonMetadata (json/write-str metadata)))))
+      (.jsonMetadata (json/write-str (conj (or metadata {})
+                                           (when correlation-id
+                                             [:$correlationId correlation-id])
+                                           (when causation-id
+                                             [:$causationId causation-id])))))))
 
 (defn- as-json [data]
   (json/read
@@ -73,11 +78,16 @@
 (defrecord Event [])
 
 (defn record->event [record]
-  (map->Event
-    {::event-type (.. record data eventType)
-     ::data (as-json (.. record data data))
-     ::metadata (as-json (.. record data metadata))
-     ::number (.. record number value)}))
+  (->
+    (map->Event
+      {::id (.. record data eventId toString)
+       ::event-type (.. record data eventType)
+       ::data (as-json (.. record data data))
+       ::metadata (as-json (.. record data metadata))
+       ::number (.. record number value)})
+    (as-> e (assoc e
+                   ::correlation-id (get-in e [::metadata :$correlationId])
+                   ::causation-id (get-in e [::metadata :$causationId])))))
 
 (defn indexed->event [event]
   (assoc (record->event (.event event))

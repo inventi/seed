@@ -3,6 +3,7 @@
             [compojure.route :as route]
             [clojure.core.async :refer [<!!]]
             [seed.core.command :as command]
+            [seed.core.event-store :as es]
             [seed.core.aggregate :as aggregate]
             [seed.accounts.account :as account]
             [seed.accounts.transfer :as transfer]
@@ -33,8 +34,10 @@
 
 (defn transfer-money [from to amount]
   (let [id (str (java.util.UUID/randomUUID))]
-    (command/handle-cmd (assoc (transfer/->InitiateTransfer id from to amount)
-                               ::command/stream-id id))
+    (command/handle-cmd {}
+                        (assoc (transfer/->InitiateTransfer id from to amount)
+                               ::command/stream-id id)
+                        {::es/correlation-id id})
     id))
 
 (defroutes routes

@@ -31,9 +31,10 @@
 
 (defn event->es-event [metadata event]
   (es/map->Event
-    {::es/data (into {} event)
-     ::es/event-type (.getSimpleName (type event))
-     ::es/metadata metadata}))
+    (->
+      {::es/data (into {} event)
+       ::es/event-type (.getSimpleName (type event))}
+      (merge metadata))))
 
 (defn save-events! [events metadata version id aggregate-ns]
   (es/save-events
