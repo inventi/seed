@@ -7,6 +7,7 @@
             [seed.core.aggregate :as aggregate]
             [seed.accounts.account :as account]
             [seed.accounts.transfer :as transfer]
+            [seed.accounts.pm.smtransfer :as smtransfer]
             [ring.util.response :refer  [response]]))
 
 (defn openaccount!
