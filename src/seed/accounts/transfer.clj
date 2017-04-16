@@ -55,11 +55,11 @@
     map->CompleteTransfer
     (assoc state :command)))
 
-(defn- fail-transfer [{{{:keys [process-id]} :metadata
-                        {:keys [cause]} :data :as event} :event
+(defn- fail-transfer [{{{:keys [cause]} :data :as event} :event
+                       {{:keys [id]} :data} :trigger-event
                        :as state} input]
   (->>
-    {:process-id process-id ::command/stream-id process-id :cause cause}
+    {:process-id id ::command/stream-id id :cause cause}
     map->FailTransfer
     (assoc state :command)))
 

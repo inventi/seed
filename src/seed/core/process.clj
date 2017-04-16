@@ -3,9 +3,17 @@
             [seed.core.command :as command]
             [seed.core.event-bus :as eb]
             [seed.core.event-store :as es]
-            [seed.core.util :refer [keywordize camel->lisp]]
+            [seed.core.util :refer [keywordize camel->lisp success]]
             [clojure.core.async :as async :refer [go <! >! go-loop]]
             [clojure.tools.logging :as log]))
+
+(defrecord FailCommand [cause])
+(defrecord CommandFailed [])
+
+(extend-protocol command/CommandHandler
+  FailCommand
+  (perform [command state]
+   (success [(map->CommandFailed command)])))
 
 (defn drop-ns [m]
   (zipmap
@@ -24,24 +32,35 @@
 (defn next-state [fsm state event]
   (a/advance fsm (with-event state event) (input event)))
 
+
+(defn failed-event [error metadata]
+  (merge
+    {::es/event-type "CommandFailed" ::es/data {:cause (:error error)}}
+    metadata))
+
 (defn- step
   ([fsm event]
    (step fsm nil event))
   ([fsm state event]
-   (let [new-state (next-state fsm state event)]
-     (if-not (:accepted? new-state)
-       (do
-         (command/handle-cmd {} (get-in new-state [:value :command])
-                             {::es/correlation-id (::es/correlation-id event)
-                              ::es/causation-id (::es/id event)})
-         ;have to do something with command failure here
-         new-state)
-       nil))))
+   (go
+     (let [new-state (next-state fsm state event)]
+       (if-not (:accepted? new-state)
+         (let [{:keys [::command/error]} (<! (command/handle-cmd {} (get-in new-state [:value :command])
+                                                                 {::es/correlation-id (::es/correlation-id event)
+                                                                  ::es/causation-id (::es/id event)}))]
+           (when error
+             (<! (command/handle-cmd {} (assoc
+                                          (->FailCommand error)
+                                          ::command/stream-id (::es/correlation-id event))
+                                     {::es/correlation-id (::es/correlation-id event)
+                                      ::es/causation-id (::es/id event)})))
+           new-state)
+         nil)))))
 
 (defn- loop-fsm [fsm events-ch trigger]
-  (go-loop [state (step fsm trigger)]
+  (go-loop [state (<! (step fsm trigger))]
            (when-some [event (<! events-ch)]
-             (if-let [st (step fsm state event)]
+             (if-let [st (<! (step fsm state event))]
                (recur st)
                (async/close! events-ch)))))
 
