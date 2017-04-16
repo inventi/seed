@@ -57,8 +57,8 @@
            new-state)
          nil)))))
 
-(defn- loop-fsm [fsm events-ch trigger]
-  (go-loop [state (<! (step fsm trigger))]
+(defn- loop-fsm [fsm events-ch]
+  (go-loop [state nil]
            (when-some [event (<! events-ch)]
              (if-let [st (<! (step fsm state event))]
                (recur st)

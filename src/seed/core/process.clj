@@ -14,7 +14,7 @@
     (let [id (::es/correlation-id event)
           events-ch (eb/subscribe-by correlation-id id)]
       (log/debug "triggering process" event "id" id)
-      (if-let [process (start-process-fn events-ch event)]
+      (if-let [process (start-process-fn (async/merge [(async/to-chan [event]) events-ch]))]
         (do
           (log/info "process started" id)
           (log/info "process ended" id (<! process)))
