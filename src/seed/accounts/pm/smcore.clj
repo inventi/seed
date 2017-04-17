@@ -3,7 +3,7 @@
             [seed.core.command :as command]
             [seed.core.event-bus :as eb]
             [seed.core.event-store :as es]
-            [seed.core.util :refer [keywordize camel->lisp success]]
+            [seed.core.util :refer [keywordize success]]
             [clojure.core.async :as async :refer [go <! >! go-loop]]
             [clojure.tools.logging :as log]))
 
@@ -26,12 +26,8 @@
       (update-in state [:value] assoc :event event)
       (assoc state :trigger-event event :event event))))
 
-(defn- input [{:keys [::es/event-type]}]
-  (keyword (camel->lisp event-type)))
-
 (defn next-state [fsm state event]
-  (a/advance fsm (with-event state event) (input event)))
-
+  (a/advance fsm (with-event state event) (::es/event-type event)))
 
 (defn failed-event [error metadata]
   (merge

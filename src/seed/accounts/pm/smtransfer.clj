@@ -65,7 +65,6 @@
    :reverse-credit reverse-credit
    :fail-transfer fail-transfer})
 
-(defstate accounts
+(defstate transfer-pm
   :start (process/trigger
-           (smcore/fsm-loop pattern reducers)
-           seed.accounts.transfer.TransferInitiated))
+           (smcore/fsm-loop pattern reducers) :transfer-initiated))

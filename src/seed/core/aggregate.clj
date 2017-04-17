@@ -1,7 +1,7 @@
 (ns seed.core.aggregate
   (:require [seed.core.event-store :as es]
             [clojure.core.async :as async :refer [go-loop chan close! >! <! go]]
-            [seed.core.util :refer [camel->lisp get-namespace new-empty-event success error]]
+            [seed.core.util :refer [camel->lisp lisp->camel get-namespace new-empty-event success error]]
             [clojure.tools.logging :as log]
             [clojure.spec :as s]))
 
@@ -12,7 +12,7 @@
   (reduce #(state %2 %1) init-state (reverse events)))
 
 (defn es-event->event [event-ns {:keys [::es/event-type ::es/data]}]
-  (into (new-empty-event (str event-ns "." event-type)) data))
+  (into (new-empty-event (str event-ns "." (lisp->camel (name event-type)))) data))
 
 (defn load-state! [init-state id aggregate-ns]
   (go-loop [state init-state
@@ -33,7 +33,7 @@
   (es/map->Event
     (->
       {::es/data (into {} event)
-       ::es/event-type (.getSimpleName (type event))}
+       ::es/event-type (-> event type .getSimpleName camel->lisp keyword)}
       (merge metadata))))
 
 (defn save-events! [events metadata version id aggregate-ns]

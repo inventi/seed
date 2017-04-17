@@ -1,5 +1,5 @@
 (ns seed.core.util
-  (:require [clojure.string :as st :refer [lower-case]]
+  (:require [clojure.string :as st :refer [lower-case upper-case]]
            [clojure.core.memoize :refer [memo]]))
 
 (defn- uppercase? [c]
@@ -9,6 +9,14 @@
   (if (uppercase? c)
     (str s "-" c)
     (str s c)))
+
+(defn lisp->camel [string]
+  (->>
+    (st/split string #"-")
+    (map #(apply str
+                 (upper-case (first %))
+                 (rest %)))
+    st/join))
 
 (defn camel->lisp [string]
   (lower-case (reduce lispify string)))

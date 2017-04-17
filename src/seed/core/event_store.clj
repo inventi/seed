@@ -59,7 +59,7 @@
 (defn event->record [{:keys [::event-type ::data ::metadata ::correlation-id ::causation-id] :as event}]
   (.build
     (doto
-      (EventDataBuilder. event-type)
+      (EventDataBuilder. (name event-type))
       (.eventId (java.util.UUID/randomUUID))
       (.jsonData (json/write-str data))
       (.jsonMetadata (json/write-str (conj (or metadata {})
@@ -81,7 +81,7 @@
   (->
     (map->Event
       {::id (.. record data eventId toString)
-       ::event-type (.. record data eventType)
+       ::event-type (keyword (.. record data eventType))
        ::data (as-json (.. record data data))
        ::metadata (as-json (.. record data metadata))
        ::number (.. record number value)})
